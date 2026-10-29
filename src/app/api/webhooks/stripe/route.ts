@@ -33,20 +33,49 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as any;
-      const userId = session.client_reference_id || session.metadata?.userId;
+      const userId = session.client_reference_id || (session.metadata?.userId !== 'anonymous' ? session.metadata?.userId : null);
+      const userEmail = session.customer_details?.email || session.customer_email;
       const planId = session.metadata?.planId || 'pro';
 
-      if (userId && supabaseAdmin) {
+      if (supabaseAdmin) {
+        if (userId) {
+          await supabaseAdmin
+            .from('profiles')
+            .update({
+              subscription_tier: planId,
+              subscription_status: 'active',
+              stripe_customer_id: session.customer,
+              stripe_subscription_id: session.subscription,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+        } else if (userEmail) {
+          await supabaseAdmin
+            .from('profiles')
+            .update({
+              subscription_tier: planId,
+              subscription_status: 'active',
+              stripe_customer_id: session.customer,
+              stripe_subscription_id: session.subscription,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('email', userEmail);
+        }
+      }
+      break;
+    }
+
+    case 'customer.subscription.updated': {
+      const subscription = event.data.object as any;
+      if (supabaseAdmin) {
+        const status = subscription.status === 'active' ? 'active' : subscription.status;
         await supabaseAdmin
           .from('profiles')
           .update({
-            subscription_tier: planId,
-            subscription_status: 'active',
-            stripe_customer_id: session.customer,
-            stripe_subscription_id: session.subscription,
+            subscription_status: status,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', userId);
+          .eq('stripe_subscription_id', subscription.id);
       }
       break;
     }
