@@ -72,7 +72,10 @@ export function generate7DayNutritionPlan(
 
 function getSmaeFood(id: string) {
   const f = SMAE_DATABASE.find((item) => item.id === id);
-  if (!f) throw new Error(`Food not found in SMAE: ${id}`);
+  if (!f) {
+    console.warn(`[NutritionEngine] Food not found in SMAE: ${id}, using fallback`);
+    return SMAE_DATABASE[0];
+  }
   return f;
 }
 

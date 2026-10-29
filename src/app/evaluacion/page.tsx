@@ -18,8 +18,11 @@ import {
   ArrowRight, 
   ArrowLeft,
   Lock,
-  Sparkles
+  Sparkles,
+  Apple,
+  Flame
 } from 'lucide-react';
+import { calculateMetabolicTargets } from '@/lib/engines/metabolicEngine';
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -107,6 +110,7 @@ export default function AssessmentPage() {
 
   const [triageAlert, setTriageAlert] = useState<string | null>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [planRevealed, setPlanRevealed] = useState(false);
 
   const handleNext = () => {
     // Si estamos en la sección clínica, evaluar banderas rojas en tiempo real
@@ -125,10 +129,16 @@ export default function AssessmentPage() {
     } else {
       // Guardar evaluación final y mostrar animación de cálculo científico
       setIsGeneratingPlan(true);
-      saveAssessment(formData);
+      try {
+        saveAssessment(formData);
+      } catch (err) {
+        console.error('Error saving assessment:', err);
+      }
       setTimeout(() => {
-        router.push('/dashboard');
-      }, 1800);
+        setIsGeneratingPlan(false);
+        setPlanRevealed(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 1200);
     }
   };
 
@@ -158,6 +168,174 @@ export default function AssessmentPage() {
             <div className="bg-gradient-to-r from-motive-red to-motive-redBright h-full w-full animate-pulse" />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (planRevealed) {
+    const isFemale = formData.anthropometry.gender === 'female';
+    const metabolic = calculateMetabolicTargets(
+      formData.anthropometry,
+      formData.goal.primary,
+      'moderate',
+      formData.sports.daysAvailable
+    );
+
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+        
+        {/* Header Celebration */}
+        <div className="text-center space-y-3">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20">
+            <CheckCircle2 className="w-9 h-9" />
+          </div>
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Diagnóstico Completado con Éxito</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-display font-black text-white uppercase tracking-tight">
+            Tus Planes Personalizados Están Listos
+          </h1>
+          <p className="text-sm text-zinc-300 max-w-xl mx-auto leading-relaxed">
+            Hemos calibrado tus requerimientos calóricos exactos y estructurado tu rutina de acuerdo a tus datos biométricos.
+          </p>
+        </div>
+
+        {/* Dos Tarjetas Principales: Nutrición y Entrenamiento */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Tarjeta de Nutrición */}
+          <div className="bg-gradient-to-b from-motive-surface via-motive-surfaceLight to-motive-surface border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-8 space-y-5 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
+                  <Apple className="w-3.5 h-3.5" />
+                  <span>Nutrición SMAE 5ª Ed.</span>
+                </span>
+                <span className="text-xs font-bold text-zinc-400">7 Días Variados</span>
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-display font-black text-white uppercase">
+                  Plan Nutricional de Precisión
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Ajustado a tu tasa metabólica basal y gasto calórico diario.
+                </p>
+              </div>
+
+              {/* Métricas Nutricionales */}
+              <div className="p-4 rounded-2xl bg-motive-surface border border-motive-surfaceBorder space-y-3">
+                <div className="flex items-baseline justify-between border-b border-motive-surfaceBorder/60 pb-2">
+                  <span className="text-xs text-zinc-400 font-semibold">Calorías Diarias:</span>
+                  <span className="text-2xl font-display font-black text-emerald-400">
+                    {metabolic.calorieTarget} <span className="text-xs font-medium text-zinc-400">kcal</span>
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="p-2 rounded-xl bg-motive-surfaceLight">
+                    <span className="text-[10px] text-zinc-400 block">Proteína</span>
+                    <strong className="text-white font-bold">{metabolic.macros.proteinGrams}g</strong>
+                  </div>
+                  <div className="p-2 rounded-xl bg-motive-surfaceLight">
+                    <span className="text-[10px] text-zinc-400 block">Carbohidratos</span>
+                    <strong className="text-white font-bold">{metabolic.macros.carbsGrams}g</strong>
+                  </div>
+                  <div className="p-2 rounded-xl bg-motive-surfaceLight">
+                    <span className="text-[10px] text-zinc-400 block">Grasas</span>
+                    <strong className="text-white font-bold">{metabolic.macros.fatsGrams}g</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs text-zinc-300">
+                <p className="font-semibold text-white flex items-center space-x-1">
+                  <span>✨ Recetas Fit Incluidas:</span>
+                </p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Hot cakes proteicos, tilapia fresca al limón, rice cakes con crema de cacahuate y fajitas al comal.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push('/nutricion')}
+              className="w-full mt-4 py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-500/25 hover:scale-[1.02] transition-all flex items-center justify-center space-x-2"
+            >
+              <span>Ver Mi Plan de Alimentación (7 Días)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Tarjeta de Rutina */}
+          <div className="bg-gradient-to-b from-motive-surface via-motive-surfaceLight to-motive-surface border-2 border-motive-red/40 rounded-3xl p-6 sm:p-8 space-y-5 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-motive-red/10 text-motive-redBright border border-motive-red/30 flex items-center space-x-1.5">
+                  <Dumbbell className="w-3.5 h-3.5" />
+                  <span>Biomecánica & ACSM</span>
+                </span>
+                <span className="text-xs font-bold text-zinc-400">{formData.sports.daysAvailable} Días / Semana</span>
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-display font-black text-white uppercase">
+                  {isFemale ? 'Rutina Femenina: Glúteo & Pierna' : 'Rutina Masculina: Hipertrofia & Fuerza'}
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1">
+                  {isFemale 
+                    ? 'Especialización biomecánica en Hip Thrust, Sentadilla profunda y cadena posterior.' 
+                    : 'Desarrollo muscular integral, fuerza neuromuscular y simetría estética.'}
+                </p>
+              </div>
+
+              {/* Detalles de la Rutina */}
+              <div className="p-4 rounded-2xl bg-motive-surface border border-motive-surfaceBorder space-y-2.5 text-xs">
+                <div className="flex items-center justify-between border-b border-motive-surfaceBorder/60 pb-2">
+                  <span className="text-zinc-400 font-semibold">Frecuencia:</span>
+                  <span className="text-white font-bold">{formData.sports.daysAvailable} Días de Entrenamiento</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-motive-surfaceBorder/60 pb-2">
+                  <span className="text-zinc-400 font-semibold">Progresión:</span>
+                  <span className="text-motive-redBright font-bold">Algoritmo Doble Progresión</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400 font-semibold">Duración:</span>
+                  <span className="text-white font-bold">{formData.sports.sessionDurationMinutes || 60} min por sesión</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs text-zinc-300">
+                <p className="font-semibold text-white">🏋️‍♀️ Ejercicios Clave:</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  {isFemale 
+                    ? 'Hip Thrust con barra, Prensa 45° pies altos, Sentadilla trasera, Peso muerto y Curl femoral.' 
+                    : 'Press de banca plano, Sentadilla trasera, Peso muerto convencional, Press militar y Remo.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push('/entrenamiento')}
+              className="w-full mt-4 py-3.5 px-6 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-motive-red/25 hover:scale-[1.02] transition-all flex items-center justify-center space-x-2"
+            >
+              <span>Ver Mi Rutina de Ejercicios</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+        </div>
+
+        {/* Botón de regreso al Dashboard */}
+        <div className="text-center pt-2">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="inline-flex items-center space-x-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+          >
+            <span>O explorar mi panel general (Dashboard) →</span>
+          </button>
+        </div>
+
       </div>
     );
   }

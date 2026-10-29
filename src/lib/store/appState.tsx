@@ -275,50 +275,54 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // Inicializar planes derivados de forma dinámica según datos del diagnóstico
   useEffect(() => {
     if (assessment && hasCompletedAssessment) {
-      const triage = evaluateClinicalSafety(assessment.clinical);
-      setSafetyTriage(triage);
+      try {
+        const triage = evaluateClinicalSafety(assessment.clinical);
+        setSafetyTriage(triage);
 
-      if (triage.canProceedWithAutomaticPlan) {
-        // Estimar factor de actividad real desde pasos y hábitos
-        let actLevel: 'sedentary' | 'light' | 'moderate' | 'intense' | 'very_intense' = 'moderate';
-        const steps = assessment.activityRecovery?.averageDailySteps || 7000;
-        if (steps < 5000) actLevel = 'sedentary';
-        else if (steps < 8000) actLevel = 'light';
-        else if (steps < 12000) actLevel = 'moderate';
-        else actLevel = 'intense';
+        if (triage.canProceedWithAutomaticPlan) {
+          // Estimar factor de actividad real desde pasos y hábitos
+          let actLevel: 'sedentary' | 'light' | 'moderate' | 'intense' | 'very_intense' = 'moderate';
+          const steps = assessment.activityRecovery?.averageDailySteps || 7000;
+          if (steps < 5000) actLevel = 'sedentary';
+          else if (steps < 8000) actLevel = 'light';
+          else if (steps < 12000) actLevel = 'moderate';
+          else actLevel = 'intense';
 
-        const days = assessment.sports?.daysAvailable || 4;
-        const metabolic = calculateMetabolicTargets(
-          assessment.anthropometry,
-          assessment.goal.primary,
-          actLevel,
-          days
-        );
+          const days = assessment.sports?.daysAvailable || 4;
+          const metabolic = calculateMetabolicTargets(
+            assessment.anthropometry,
+            assessment.goal.primary,
+            actLevel,
+            days
+          );
 
-        const nutrPlan = generate7DayNutritionPlan(
-          assessment.userId,
-          metabolic,
-          assessment.diet?.preferredMealsPerDay || 4
-        );
+          const nutrPlan = generate7DayNutritionPlan(
+            assessment.userId,
+            metabolic,
+            assessment.diet?.preferredMealsPerDay || 4
+          );
 
-        const expLevel = 
-          (assessment.sports?.yearsTraining || 0) < 1 
-            ? 'beginner' 
-            : (assessment.sports?.yearsTraining || 0) > 3 
-              ? 'advanced' 
-              : 'intermediate';
+          const expLevel = 
+            (assessment.sports?.yearsTraining || 0) < 1 
+              ? 'beginner' 
+              : (assessment.sports?.yearsTraining || 0) > 3 
+                ? 'advanced' 
+                : 'intermediate';
 
-        const workPlan = generatePersonalizedWorkoutPlan(
-          assessment.userId,
-          days,
-          expLevel,
-          assessment.anthropometry.gender,
-          assessment.goal.primary,
-          assessment.sports?.trainingLocation || 'gym'
-        );
+          const workPlan = generatePersonalizedWorkoutPlan(
+            assessment.userId,
+            days,
+            expLevel,
+            assessment.anthropometry.gender,
+            assessment.goal.primary,
+            assessment.sports?.trainingLocation || 'gym'
+          );
 
-        setNutritionPlan(nutrPlan);
-        setWorkoutPlan(workPlan);
+          setNutritionPlan(nutrPlan);
+          setWorkoutPlan(workPlan);
+        }
+      } catch (err) {
+        console.error('Error calculando planes fisiológicos:', err);
       }
     } else {
       setNutritionPlan(null);

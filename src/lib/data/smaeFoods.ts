@@ -158,6 +158,23 @@ export const SMAE_DATABASE: FoodItem[] = [
     source: 'SMAE 5ta Edición'
   },
   {
+    id: 'cer-avena-hojuelas',
+    name: 'Avena en hojuelas entera (seca/cruda)',
+    category: 'cereales_sin_grasa',
+    servingDescription: '1/3 de taza (30 g seco)',
+    servingGrams: 30,
+    state: 'crudo',
+    cookingYieldFactor: 2.8,
+    calories: 117,
+    protein: 4.2,
+    carbs: 20.1,
+    fats: 2.1,
+    fiber: 3.2,
+    sodiumMg: 2,
+    costTier: 'economico',
+    source: 'SMAE 5ta Edición'
+  },
+  {
     id: 'cer-arroz-blanco-crudo',
     name: 'Arroz blanco de grano largo (crudo/seco)',
     category: 'cereales_sin_grasa',
