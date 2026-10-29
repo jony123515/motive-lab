@@ -61,10 +61,15 @@ export default function RegisterPage() {
 
     try {
       if (isSupabaseConfigured && supabase) {
+        const redirectUrl = typeof window !== 'undefined' 
+          ? `${window.location.origin}/evaluacion` 
+          : 'https://motive-lab-1zv3-8tultyb0i-motive-lab.vercel.app/evaluacion';
+
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: formData.fullName,
               birth_date: formData.birthDate,
