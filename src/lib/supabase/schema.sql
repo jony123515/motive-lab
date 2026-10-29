@@ -36,10 +36,20 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     country TEXT DEFAULT 'México',
     timezone TEXT DEFAULT 'America/Mexico_City',
     role user_role_type DEFAULT 'client' NOT NULL,
+    subscription_tier TEXT DEFAULT 'free',
+    subscription_status TEXT DEFAULT 'inactive',
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
     avatar_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+-- Asegurar columnas si la tabla ya existía
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'free';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'inactive';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 
 -- 4. Tabla de Consentimientos y Cumplimiento ARCO / Protección de Datos en Salud
 CREATE TABLE IF NOT EXISTS public.privacy_consents (

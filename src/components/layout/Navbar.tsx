@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Sparkles
 } from 'lucide-react';
 
 export function Navbar() {
@@ -42,6 +43,7 @@ export function Navbar() {
     { href: '/entrenamiento', label: 'Entrenamiento', icon: Dumbbell },
     { href: '/recuperacion', label: 'Hidratación & Ciencia', icon: Droplets },
     { href: '/reportes', label: 'Reporte Clínico', icon: FileText },
+    { href: '/precios', label: 'Planes Pro', icon: Sparkles },
   ];
 
   if (currentUser.role === 'coach' || currentUser.role === 'nutritionist' || currentUser.role === 'admin') {
