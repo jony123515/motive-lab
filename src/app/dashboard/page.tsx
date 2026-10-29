@@ -24,6 +24,7 @@ import {
   ClipboardCheck
 } from 'lucide-react';
 import { evaluateDoubleProgression } from '@/lib/engines/progressionEngine';
+import { PhysiologicalGuaranteeCard } from '@/components/dashboard/PhysiologicalGuaranteeCard';
 
 function PaymentBanner({ onUpgrade }: { onUpgrade: (tier: 'pro' | 'coach') => void }) {
   const searchParams = useSearchParams();
@@ -230,6 +231,9 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Garantía Fisiológica & Cronograma de Resultados */}
+      <PhysiologicalGuaranteeCard />
 
       {/* KPI Cards: Calorías, Macros, Entrenamiento y Agua */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
 import { AssessmentGate } from '@/components/auth/AssessmentGate';
+import { PhysiologicalGuaranteeCard } from '@/components/dashboard/PhysiologicalGuaranteeCard';
 
 export default function NutritionPage() {
   const { currentUser, nutritionPlan, substituteMealFood } = useAppState();
@@ -106,6 +107,9 @@ export default function NutritionPage() {
           <span>{isFree ? 'Lista de Compras (Plan Pro)' : 'Generar Lista de Compras Semanal'}</span>
         </button>
       </div>
+
+      {/* Garantía Fisiológica & Desglose Matemático */}
+      <PhysiologicalGuaranteeCard />
 
       {/* Selector de Días de la Semana */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-2">

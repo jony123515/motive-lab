@@ -121,29 +121,37 @@ function buildDayMeals(
   if (mealsCount <= 3) {
     mealDist = [
       {
-        name: 'Desayuno Fisiológico de Alto Rendimiento',
+        name: dayIndex === 6 || dayIndex === 7 ? '🥞 Desayuno Fit: Hot Cakes Proteicos' : '🍳 Desayuno Fisiológico de Alto Rendimiento',
         type: 'breakfast',
         time: '08:00',
         share: 0.35,
-        prepSteps: [
-          'Batir huevos enteros y claras en un tazón.',
+        prepSteps: dayIndex === 6 || dayIndex === 7 ? [
+          'Licuar la avena con claras de huevo, proteína whey y una pizca de canela.',
+          'Cocinar a fuego bajo en sartén antiadherente con tapa hasta que salgan burbujas.',
+          'Voltear 1 minuto y servir calientes con rebanadas de plátano fresco.',
+        ] : [
+          'Batir huevos enteros y claras en un tazón hondo.',
           'Saltear nopales o verduras al sartén caliente con ligero rocío antiadherente.',
           'Cocinar a fuego medio y servir con tortillas de maíz nixtamalizadas calientes y aguacate.',
         ],
       },
       {
-        name: 'Comida Principal de Precisión',
+        name: (dayIndex === 3 || dayIndex === 7) ? '🐟 Comida Fit: Tilapia a las Finas Hierbas' : '🥩 Comida Principal de Precisión',
         type: 'lunch',
         time: '14:30',
         share: 0.40,
-        prepSteps: [
+        prepSteps: (dayIndex === 3 || dayIndex === 7) ? [
+          'Sazonar el filete de tilapia con limón fresco, ajo molido y finas hierbas.',
+          'Asar en sartén a fuego medio por 3-4 minutos por lado para conservar jugosidad.',
+          'Servir con porción exacta de arroz al vapor, ensalada verde y aceite de oliva extra virgen.',
+        ] : [
           'Sazonar la fuente de proteína magra con ajo, pimienta y sal marina.',
           'Asar a la plancha a temperatura media para conservar jugosidad y valor biológico.',
           'Acompañar con porción pesada de arroz o papas al vapor y leguminosas de la olla.',
         ],
       },
       {
-        name: 'Cena Liviana y Síntesis Nocturna',
+        name: '🌮 Cena Liviana y Síntesis Nocturna',
         type: 'dinner',
         time: '20:30',
         share: 0.25,
@@ -156,41 +164,52 @@ function buildDayMeals(
   } else {
     mealDist = [
       {
-        name: 'Desayuno Energético Anabólico',
+        name: dayIndex === 6 || dayIndex === 7 ? '🥞 Desayuno Fit: Hot Cakes Proteicos' : '🍳 Desayuno Energético Anabólico',
         type: 'breakfast',
         time: '07:30',
         share: 0.28,
-        prepSteps: [
+        prepSteps: dayIndex === 6 || dayIndex === 7 ? [
+          'Licuar avena en hojuelas con claras de huevo, proteína whey y canela.',
+          'Cocinar en sartén antiadherente a fuego bajo hasta que salgan burbujas, voltear 1 min.',
+          'Servir con rodajas de plátano fresco encima.',
+        ] : [
           'Cocer avena en agua con canela al gusto o batir claras con huevos enteros.',
           'Acompañar con tortillas de maíz al comal o fruta fresca de estación.',
         ],
       },
       {
-        name: 'Colación Pre-Entreno / Media Mañana',
+        name: dayIndex % 2 === 0 ? '🍘 Colación Fit: Rice Cakes con Crema de Cacahuate' : '🥤 Colación Pre-Entreno: Shake & Fruta',
         type: 'pre_workout',
         time: '11:00',
         share: 0.18,
-        prepSteps: [
-          'Disolver proteína de suero aislada en agua fría o mezclar con fruta natural y almendras.',
+        prepSteps: dayIndex % 2 === 0 ? [
+          'Untar la crema de cacahuate natural sobre las tortitas de arroz inflado (rice cakes).',
+          'Acompañar con shake frío de proteína whey en agua. Snack crujiente ideal pre-entreno.',
+        ] : [
+          'Disolver proteína de suero aislada en agua helada y consumir con fruta fresca 45 min antes de entrenar.',
         ],
       },
       {
-        name: 'Comida Principal Post-Entreno',
+        name: (dayIndex === 3 || dayIndex === 7) ? '🐟 Comida Fit: Filete de Tilapia al Limón' : '🍗 Comida Principal Post-Entreno',
         type: 'lunch',
         time: '14:30',
         share: 0.34,
-        prepSteps: [
+        prepSteps: (dayIndex === 3 || dayIndex === 7) ? [
+          'Marinar la tilapia con jugo de limón y especias aromáticas.',
+          'Asar a fuego medio en sartén caliente por 3 minutos por lado.',
+          'Servir con arroz blanco recién hecho, ensalada de espinacas tiernas y aguacate.',
+        ] : [
           'Asar a la plancha la proteína magra.',
           'Servir con porción calculada de arroz al vapor, frijoles enteros y aguacate Hass fresco.',
         ],
       },
       {
-        name: 'Cena de Recuperación Muscular',
+        name: '🥗 Cena de Recuperación Muscular',
         type: 'dinner',
         time: '20:30',
         share: 0.20,
         prepSteps: [
-          'Preparar ensalada fresca con proteína ligera (atún, pollo deshebrado o panela).',
+          'Preparar ensalada fresca con proteína ligera (atún, pollo deshebrado o panela asado).',
           'Acompañar con tostadas de maíz horneadas o tortillas nixtamalizadas.',
         ],
       },
@@ -202,44 +221,59 @@ function buildDayMeals(
 
     if (dist.type === 'breakfast') {
       // Variación según el día de la semana
-      if (dayIndex % 2 === 1) {
-        // Días impares: Huevos con claras, nopales y tortillas
+      if (dayIndex === 6 || dayIndex === 7) {
+        // Fin de semana: Hot cakes fit proteicos de avena, claras y plátano
+        items.push(makeFoodRef('rec-hot-cakes-proteicos', Math.max(90, Math.round(110 * pScale)), 'Hot cakes fit de avena, claras y canela'));
+        items.push(makeFoodRef('fru-platano-tabasco', Math.max(60, Math.round(80 * cScale)), 'Rodajas de plátano fresco encima'));
+        items.push(makeFoodRef('aoa-clara-huevo', Math.max(60, Math.round(80 * pScale)), 'Claras adicionales para máximo anabolismo'));
+      } else if (dayIndex % 2 === 1) {
+        // Días 1, 3, 5: Huevos revueltos con claras, nopales tiernos y tortillas
         items.push(makeFoodRef('aoa-huevo-entero', Math.max(50, Math.round(50 * Math.min(2, pScale))), 'Huevos frescos enteros'));
         items.push(makeFoodRef('aoa-clara-huevo', Math.max(60, Math.round(75 * pScale)), 'Claras pasteurizadas'));
         items.push(makeFoodRef('cer-tortilla-maiz', Math.max(30, Math.round(50 * cScale)), 'Tortillas nixtamalizadas al comal'));
         items.push(makeFoodRef('ver-nopal-cocido', Math.max(100, Math.round(150 * scale)), 'Nopales salteados'));
         items.push(makeFoodRef('gra-aguacate-hass', Math.max(25, Math.round(35 * fScale)), 'Aguacate fresco en rebanadas'));
       } else {
-        // Días pares: Avena cocida con claras y fruta o queso panela
+        // Días 2, 4: Avena cocida con canela, claras revueltas y queso panela asado
         items.push(makeFoodRef('cer-avena-hojuelas', Math.max(40, Math.round(50 * cScale)), 'Avena en hojuelas cocida con canela'));
         items.push(makeFoodRef('aoa-clara-huevo', Math.max(90, Math.round(110 * pScale)), 'Claras revueltas esponjosas'));
         items.push(makeFoodRef('aoa-queso-panela', Math.max(30, Math.round(40 * pScale)), 'Queso panela asado'));
-        items.push(makeFoodRef('fru-platano-tabasco', Math.max(60, Math.round(80 * cScale)), 'Rebanadas de plátano fresco'));
+        items.push(makeFoodRef('fru-manzana-roja', Math.max(80, Math.round(100 * cScale)), 'Manzana picada fresca'));
       }
     } else if (dist.type === 'pre_workout' || dist.type === 'morning_snack') {
-      items.push(makeFoodRef('sup-whey-isolate', Math.max(20, Math.round(30 * Math.min(1.5, pScale))), 'Disuelto en 300 ml de agua fría'));
-      if (dayIndex % 2 === 1) {
-        items.push(makeFoodRef('fru-platano-tabasco', Math.max(80, Math.round(100 * cScale)), 'Glúcidos de absorción media-rápida'));
+      if (dayIndex % 2 === 0) {
+        // Snack crujiente: Rice Cakes con crema de cacahuate natural y fruta
+        items.push(makeFoodRef('cer-rice-cakes', Math.max(18, Math.round(25 * cScale)), 'Tortitas de arroz inflado crujientes'));
+        items.push(makeFoodRef('gra-crema-cacahuate', Math.max(16, Math.round(20 * fScale)), 'Untada sobre los rice cakes'));
+        items.push(makeFoodRef('sup-whey-isolate', Math.max(20, Math.round(25 * pScale)), 'Shake proteico en agua'));
       } else {
-        items.push(makeFoodRef('fru-manzana-roja', Math.max(100, Math.round(120 * cScale)), 'Manzana fresca con piel (fibra y pectina)'));
+        // Snack rápido: Shake de Whey con plátano
+        items.push(makeFoodRef('sup-whey-isolate', Math.max(20, Math.round(30 * Math.min(1.5, pScale))), 'Disuelto en 300 ml de agua fría'));
+        items.push(makeFoodRef('fru-platano-tabasco', Math.max(80, Math.round(100 * cScale)), 'Glúcidos de absorción media-rápida'));
       }
     } else if (dist.type === 'lunch') {
       // Variación de proteínas según el día
-      if (dayIndex === 1 || dayIndex === 4 || dayIndex === 7) {
+      if (dayIndex === 1 || dayIndex === 4) {
         // Pechuga de pollo
         items.push(makeFoodRef('aoa-pollo-pechuga-cocida', Math.max(90, Math.round(130 * pScale)), 'Pechuga a la plancha con hierbas finas'));
         items.push(makeFoodRef('cer-arroz-blanco-cocido', Math.max(80, Math.round(140 * cScale)), 'Arroz blanco al vapor'));
         items.push(makeFoodRef('leg-frijol-negro-cocido', Math.max(70, Math.round(100 * cScale)), 'Frijoles negros enteros de la olla'));
         items.push(makeFoodRef('gra-aguacate-hass', Math.max(25, Math.round(40 * fScale)), 'Aguacate Hass'));
+      } else if (dayIndex === 3 || dayIndex === 7) {
+        // Filete de Tilapia fresca asada al ajillo o limón
+        items.push(makeFoodRef('aoa-tilapia-filete-cocido', Math.max(100, Math.round(140 * pScale)), 'Filete de tilapia asada con limón y ajo'));
+        items.push(makeFoodRef('cer-arroz-blanco-cocido', Math.max(80, Math.round(140 * cScale)), 'Arroz blanco al vapor'));
+        items.push(makeFoodRef('ver-espinaca-cruda', Math.max(60, Math.round(100 * scale)), 'Ensalada de espinacas tiernas con jitomate'));
+        items.push(makeFoodRef('gra-aceite-oliva', Math.max(5, Math.round(10 * fScale)), 'Aceite de oliva extra virgen en crudo'));
       } else if (dayIndex === 2 || dayIndex === 6) {
-        // Bistec de res magra
-        items.push(makeFoodRef('aoa-res-magra-cruda', Math.max(100, Math.round(140 * pScale)), 'Bistec magro a la plancha'));
+        // Bistec de res magra con papas o tortillas
+        items.push(makeFoodRef('aoa-res-magra-cruda', Math.max(100, Math.round(140 * pScale)), 'Bistec magro asado a la plancha'));
         items.push(makeFoodRef('cer-tortilla-maiz', Math.max(45, Math.round(60 * cScale)), 'Tortillas nixtamalizadas'));
         items.push(makeFoodRef('leg-frijol-negro-cocido', Math.max(70, Math.round(100 * cScale)), 'Frijoles de la olla'));
         items.push(makeFoodRef('ver-nopal-cocido', Math.max(100, Math.round(130 * scale)), 'Nopales asados'));
         items.push(makeFoodRef('gra-aguacate-hass', Math.max(20, Math.round(30 * fScale)), 'Guacamole ligero con limón'));
       } else {
-        // Pescado blanco / Atún
+        // Atún sellado o medallón a la mexicana
         items.push(makeFoodRef('aoa-atun-agua', Math.max(80, Math.round(120 * pScale)), 'Atún sellado o en medallón'));
         items.push(makeFoodRef('cer-arroz-blanco-cocido', Math.max(90, Math.round(150 * cScale)), 'Arroz blanco recién cocido'));
         items.push(makeFoodRef('gra-aceite-oliva', Math.max(5, Math.round(10 * fScale)), 'Aceite de oliva extra virgen en crudo'));
