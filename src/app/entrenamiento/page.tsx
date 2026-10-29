@@ -29,6 +29,7 @@ import {
   Trash2,
   Film
 } from 'lucide-react';
+import { AssessmentGate } from '@/components/auth/AssessmentGate';
 
 export default function TrainingPage() {
   const { currentUser, workoutPlan, saveLoggedWorkout } = useAppState();
@@ -141,7 +142,8 @@ export default function TrainingPage() {
     : EXERCISE_DATABASE.filter(e => e.primaryMuscle === selectedMuscleFilter);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <AssessmentGate featureName="tu Rutina de Entrenamiento Personalizada">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Header Banner */}
       <div className="bg-motive-surface border border-motive-surfaceBorder rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl">
@@ -422,11 +424,11 @@ export default function TrainingPage() {
               className="bg-motive-surfaceLight border border-motive-surfaceBorder rounded-2xl overflow-hidden hover:border-motive-red/50 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
-                <div className="relative h-44 overflow-hidden">
+                <div className="relative h-48 overflow-hidden bg-white flex items-center justify-center p-2 rounded-t-2xl">
                   <img
                     src={ex.imageUrl}
                     alt={ex.nameSpanish}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-3 left-3 flex items-center space-x-1.5">
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-black/70 backdrop-blur-sm text-white border border-white/20">
@@ -484,11 +486,11 @@ export default function TrainingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="rounded-2xl overflow-hidden border border-motive-surfaceBorder h-56">
+              <div className="rounded-2xl overflow-hidden border border-motive-surfaceBorder h-56 bg-white flex items-center justify-center p-2">
                 <img
                   src={selectedExerciseForModal.imageUrl}
                   alt={selectedExerciseForModal.nameSpanish}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
 
@@ -718,6 +720,7 @@ export default function TrainingPage() {
         </div>
       )}
 
-    </div>
+      </div>
+    </AssessmentGate>
   );
 }

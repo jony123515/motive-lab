@@ -70,6 +70,34 @@ export function generate7DayNutritionPlan(
   };
 }
 
+function getSmaeFood(id: string) {
+  const f = SMAE_DATABASE.find((item) => item.id === id);
+  if (!f) throw new Error(`Food not found in SMAE: ${id}`);
+  return f;
+}
+
+function makeFoodRef(
+  foodId: string,
+  targetGrams: number,
+  notes?: string
+): MealFoodReference {
+  const food = getSmaeFood(foodId);
+  const ratio = targetGrams / food.servingGrams;
+  return {
+    foodId: food.id,
+    foodName: food.name,
+    category: food.category,
+    grams: Math.round(targetGrams),
+    servingsEquivalent: Number(ratio.toFixed(1)),
+    state: food.state,
+    calories: Math.round(food.calories * ratio),
+    protein: Number((food.protein * ratio).toFixed(1)),
+    carbs: Number((food.carbs * ratio).toFixed(1)),
+    fats: Number((food.fats * ratio).toFixed(1)),
+    preparationNotes: notes,
+  };
+}
+
 function buildDayMeals(
   dayIndex: number,
   metabolic: MetabolicCalculationResult,
@@ -80,58 +108,61 @@ function buildDayMeals(
   const targetCarbs = metabolic.macros.carbsGrams;
   const targetFats = metabolic.macros.fatsGrams;
 
-  // Reparto porcentual de calorías y macros
-  let distributions: { name: string; type: Meal['type']; time: string; share: number; prepSteps: string[] }[] = [];
+  // Factor de escala relativo a una base de 2000 kcal
+  const scale = targetKcal / 2000;
+  // Factor específico para proteína, carbohidratos y grasas
+  const pScale = targetProt / 140;
+  const cScale = targetCarbs / 220;
+  const fScale = targetFats / 60;
+
+  // Reparto porcentual según cantidad de comidas
+  let mealDist: { name: string; type: Meal['type']; time: string; share: number; prepSteps: string[] }[] = [];
 
   if (mealsCount <= 3) {
-    distributions = [
+    mealDist = [
       {
-        name: 'Desayuno Proteico de Alto Valor',
+        name: 'Desayuno Fisiológico de Alto Rendimiento',
         type: 'breakfast',
         time: '08:00',
         share: 0.35,
         prepSteps: [
-          'Batir huevos enteros con claras en un tazón hondo.',
-          'Saltear nopales cocidos en un sartén con una gota de aceite o rociador antiadherente.',
-          'Verter los huevos sobre los nopales y cocinar a fuego medio hasta cuajar.',
-          'Calentar las tortillas de maíz en comal y servir con aguacate fresco al gusto.',
+          'Batir huevos enteros y claras en un tazón.',
+          'Saltear nopales o verduras al sartén caliente con ligero rocío antiadherente.',
+          'Cocinar a fuego medio y servir con tortillas de maíz nixtamalizadas calientes y aguacate.',
         ],
       },
       {
-        name: 'Comida Principal de Rendimiento',
+        name: 'Comida Principal de Precisión',
         type: 'lunch',
         time: '14:30',
         share: 0.40,
         prepSteps: [
-          'Sazonar la pechuga de pollo con ajo, cebolla en polvo y sal de mar.',
-          'Asar la pechuga a la plancha a fuego medio-alto por 4-5 minutos de cada lado para conservar jugosidad.',
-          'Servir sobre cama de arroz blanco cocido al vapor y frijoles de la olla.',
-          'Añadir ensalada de espinaca y jitomate fresco aderezada con aceite de oliva.',
+          'Sazonar la fuente de proteína magra con ajo, pimienta y sal marina.',
+          'Asar a la plancha a temperatura media para conservar jugosidad y valor biológico.',
+          'Acompañar con porción pesada de arroz o papas al vapor y leguminosas de la olla.',
         ],
       },
       {
-        name: 'Cena Liviana y Recuperación',
+        name: 'Cena Liviana y Síntesis Nocturna',
         type: 'dinner',
         time: '20:30',
         share: 0.25,
         prepSteps: [
-          'Abrir y drenar perfectamente el atún en agua.',
-          'Mezclar en tazón con jitomate picado, gotas de limón y sal.',
-          'Servir con rebanadas de queso panela y tostadas horneadas o tortillas de maíz al comal.',
+          'Drenar el atún o asar el queso panela a la plancha con orégano.',
+          'Armar tacos o tostadas horneadas con verduras frescas picadas y aguacate fresco.',
         ],
       },
     ];
   } else {
-    distributions = [
+    mealDist = [
       {
-        name: 'Desayuno Fisiológico',
+        name: 'Desayuno Energético Anabólico',
         type: 'breakfast',
         time: '07:30',
         share: 0.28,
         prepSteps: [
-          'Cocer avena en agua con canela al gusto.',
-          'Agregar rebanadas de plátano y yogur griego natural sin azúcar.',
-          'Acompañar con revuelto de claras y huevo entero con nopales tiernos.',
+          'Cocer avena en agua con canela al gusto o batir claras con huevos enteros.',
+          'Acompañar con tortillas de maíz al comal o fruta fresca de estación.',
         ],
       },
       {
@@ -140,19 +171,17 @@ function buildDayMeals(
         time: '11:00',
         share: 0.18,
         prepSteps: [
-          'Servir papaya maradol fresca picada en cubos.',
-          'Mezclar con 1 scoop de proteína de suero aislada disuelta en agua fría o yogur natural.',
+          'Disolver proteína de suero aislada en agua fría o mezclar con fruta natural y almendras.',
         ],
       },
       {
-        name: 'Comida Principal Anabólica',
+        name: 'Comida Principal Post-Entreno',
         type: 'lunch',
         time: '14:30',
         share: 0.34,
         prepSteps: [
-          'Asar el bistec de res magro o pechuga de pollo en sartén caliente.',
-          'Servir con porción exacta de arroz blanco cocido y frijoles negros enteros recién hervidos.',
-          'Acompañar con tortillas de maíz nixtamalizado y rebanadas de aguacate Hass.',
+          'Asar a la plancha la proteína magra.',
+          'Servir con porción calculada de arroz al vapor, frijoles enteros y aguacate Hass fresco.',
         ],
       },
       {
@@ -161,197 +190,74 @@ function buildDayMeals(
         time: '20:30',
         share: 0.20,
         prepSteps: [
-          'Armar tacos ligeros de atún con verduras o queso panela asado.',
-          'Acompañar con ensalada de calabacitas al vapor con orégano y limón.',
+          'Preparar ensalada fresca con proteína ligera (atún, pollo deshebrado o panela).',
+          'Acompañar con tostadas de maíz horneadas o tortillas nixtamalizadas.',
         ],
       },
     ];
   }
 
-  // Generación determinista de alimentos ajustando porciones exactas
-  return distributions.map((dist, idx) => {
-    const mealKcal = Math.round(targetKcal * dist.share);
-    const mealProt = Number((targetProt * dist.share).toFixed(1));
-    const mealCarbs = Number((targetCarbs * dist.share).toFixed(1));
-    const mealFats = Number((targetFats * dist.share).toFixed(1));
-
+  return mealDist.map((dist, idx) => {
     const items: MealFoodReference[] = [];
 
     if (dist.type === 'breakfast') {
-      items.push({
-        foodId: 'aoa-huevo-entero',
-        foodName: 'Huevo entero',
-        category: 'aoa_moderado_grasa',
-        grams: 100, // 2 piezas
-        servingsEquivalent: 2,
-        state: 'cocido',
-        calories: 156,
-        protein: 12.6,
-        carbs: 1.2,
-        fats: 10.6,
-        preparationNotes: 'Revueltos con nopales',
-      });
-      items.push({
-        foodId: 'aoa-clara-huevo',
-        foodName: 'Clara de huevo',
-        category: 'aoa_muy_bajo_grasa',
-        grams: 90,
-        servingsEquivalent: 1.5,
-        state: 'cocido',
-        calories: 51,
-        protein: 10.8,
-        carbs: 0.6,
-        fats: 0.1,
-      });
-      items.push({
-        foodId: 'cer-tortilla-maiz',
-        foodName: 'Tortilla de maíz nixtamalizada',
-        category: 'cereales_sin_grasa',
-        grams: 60, // 2 piezas
-        servingsEquivalent: 2,
-        state: 'cocido',
-        calories: 128,
-        protein: 2.8,
-        carbs: 27.2,
-        fats: 1.0,
-      });
-      items.push({
-        foodId: 'ver-nopal-cocido',
-        foodName: 'Nopales cocidos',
-        category: 'verduras',
-        grams: 150,
-        servingsEquivalent: 1,
-        state: 'cocido',
-        calories: 22,
-        protein: 1.8,
-        carbs: 4.5,
-        fats: 0.1,
-      });
+      // Variación según el día de la semana
+      if (dayIndex % 2 === 1) {
+        // Días impares: Huevos con claras, nopales y tortillas
+        items.push(makeFoodRef('aoa-huevo-entero', Math.max(50, Math.round(50 * Math.min(2, pScale))), 'Huevos frescos enteros'));
+        items.push(makeFoodRef('aoa-clara-huevo', Math.max(60, Math.round(75 * pScale)), 'Claras pasteurizadas'));
+        items.push(makeFoodRef('cer-tortilla-maiz', Math.max(30, Math.round(50 * cScale)), 'Tortillas nixtamalizadas al comal'));
+        items.push(makeFoodRef('ver-nopal-cocido', Math.max(100, Math.round(150 * scale)), 'Nopales salteados'));
+        items.push(makeFoodRef('gra-aguacate-hass', Math.max(25, Math.round(35 * fScale)), 'Aguacate fresco en rebanadas'));
+      } else {
+        // Días pares: Avena cocida con claras y fruta o queso panela
+        items.push(makeFoodRef('cer-avena-hojuelas', Math.max(40, Math.round(50 * cScale)), 'Avena en hojuelas cocida con canela'));
+        items.push(makeFoodRef('aoa-clara-huevo', Math.max(90, Math.round(110 * pScale)), 'Claras revueltas esponjosas'));
+        items.push(makeFoodRef('aoa-queso-panela', Math.max(30, Math.round(40 * pScale)), 'Queso panela asado'));
+        items.push(makeFoodRef('fru-platano-tabasco', Math.max(60, Math.round(80 * cScale)), 'Rebanadas de plátano fresco'));
+      }
     } else if (dist.type === 'pre_workout' || dist.type === 'morning_snack') {
-      items.push({
-        foodId: 'sup-whey-isolate',
-        foodName: 'Proteína Whey Isolate',
-        category: 'aoa_muy_bajo_grasa',
-        grams: 30,
-        servingsEquivalent: 1,
-        state: 'listo_consumo',
-        calories: 115,
-        protein: 25.0,
-        carbs: 1.5,
-        fats: 0.8,
-      });
-      items.push({
-        foodId: 'fru-platano-tabasco',
-        foodName: 'Plátano roatán fresco',
-        category: 'frutas',
-        grams: 120,
-        servingsEquivalent: 1.5,
-        state: 'listo_consumo',
-        calories: 108,
-        protein: 1.4,
-        carbs: 27.3,
-        fats: 0.3,
-      });
+      items.push(makeFoodRef('sup-whey-isolate', Math.max(20, Math.round(30 * Math.min(1.5, pScale))), 'Disuelto en 300 ml de agua fría'));
+      if (dayIndex % 2 === 1) {
+        items.push(makeFoodRef('fru-platano-tabasco', Math.max(80, Math.round(100 * cScale)), 'Glúcidos de absorción media-rápida'));
+      } else {
+        items.push(makeFoodRef('fru-manzana-roja', Math.max(100, Math.round(120 * cScale)), 'Manzana fresca con piel (fibra y pectina)'));
+      }
     } else if (dist.type === 'lunch') {
-      items.push({
-        foodId: 'aoa-pollo-pechuga-cocida',
-        foodName: 'Pechuga de pollo asada',
-        category: 'aoa_muy_bajo_grasa',
-        grams: 150,
-        servingsEquivalent: 1.6,
-        state: 'cocido',
-        calories: 246,
-        protein: 46.6,
-        carbs: 0,
-        fats: 5.3,
-        preparationNotes: 'Pechuga asada a la plancha con ajo y paprika',
-      });
-      items.push({
-        foodId: 'cer-arroz-blanco-cocido',
-        foodName: 'Arroz blanco cocido',
-        category: 'cereales_sin_grasa',
-        grams: 150,
-        servingsEquivalent: 1.5,
-        state: 'cocido',
-        calories: 195,
-        protein: 4.0,
-        carbs: 42.3,
-        fats: 0.4,
-      });
-      items.push({
-        foodId: 'leg-frijol-negro-cocido',
-        foodName: 'Frijoles negros de la olla',
-        category: 'leguminosas',
-        grams: 120,
-        servingsEquivalent: 1,
-        state: 'cocido',
-        calories: 110,
-        protein: 7.6,
-        carbs: 19.8,
-        fats: 0.5,
-      });
-      items.push({
-        foodId: 'gra-aguacate-hass',
-        foodName: 'Aguacate Hass',
-        category: 'aceites_sin_proteina',
-        grams: 45,
-        servingsEquivalent: 1,
-        state: 'listo_consumo',
-        calories: 72,
-        protein: 0.9,
-        carbs: 3.8,
-        fats: 6.7,
-      });
+      // Variación de proteínas según el día
+      if (dayIndex === 1 || dayIndex === 4 || dayIndex === 7) {
+        // Pechuga de pollo
+        items.push(makeFoodRef('aoa-pollo-pechuga-cocida', Math.max(90, Math.round(130 * pScale)), 'Pechuga a la plancha con hierbas finas'));
+        items.push(makeFoodRef('cer-arroz-blanco-cocido', Math.max(80, Math.round(140 * cScale)), 'Arroz blanco al vapor'));
+        items.push(makeFoodRef('leg-frijol-negro-cocido', Math.max(70, Math.round(100 * cScale)), 'Frijoles negros enteros de la olla'));
+        items.push(makeFoodRef('gra-aguacate-hass', Math.max(25, Math.round(40 * fScale)), 'Aguacate Hass'));
+      } else if (dayIndex === 2 || dayIndex === 6) {
+        // Bistec de res magra
+        items.push(makeFoodRef('aoa-res-magra-cruda', Math.max(100, Math.round(140 * pScale)), 'Bistec magro a la plancha'));
+        items.push(makeFoodRef('cer-tortilla-maiz', Math.max(45, Math.round(60 * cScale)), 'Tortillas nixtamalizadas'));
+        items.push(makeFoodRef('leg-frijol-negro-cocido', Math.max(70, Math.round(100 * cScale)), 'Frijoles de la olla'));
+        items.push(makeFoodRef('ver-nopal-cocido', Math.max(100, Math.round(130 * scale)), 'Nopales asados'));
+        items.push(makeFoodRef('gra-aguacate-hass', Math.max(20, Math.round(30 * fScale)), 'Guacamole ligero con limón'));
+      } else {
+        // Pescado blanco / Atún
+        items.push(makeFoodRef('aoa-atun-agua', Math.max(80, Math.round(120 * pScale)), 'Atún sellado o en medallón'));
+        items.push(makeFoodRef('cer-arroz-blanco-cocido', Math.max(90, Math.round(150 * cScale)), 'Arroz blanco recién cocido'));
+        items.push(makeFoodRef('gra-aceite-oliva', Math.max(5, Math.round(10 * fScale)), 'Aceite de oliva extra virgen en crudo'));
+        items.push(makeFoodRef('ver-espinaca-cruda', Math.max(60, Math.round(90 * scale)), 'Ensalada de hojas verdes y jitomate'));
+      }
     } else {
       // Dinner
-      items.push({
-        foodId: 'aoa-atun-agua',
-        foodName: 'Atún en agua drenado',
-        category: 'aoa_muy_bajo_grasa',
-        grams: 120,
-        servingsEquivalent: 3,
-        state: 'drenado',
-        calories: 138,
-        protein: 30.6,
-        carbs: 0,
-        fats: 1.2,
-      });
-      items.push({
-        foodId: 'aoa-queso-panela',
-        foodName: 'Queso panela',
-        category: 'aoa_bajo_grasa',
-        grams: 40,
-        servingsEquivalent: 1,
-        state: 'listo_consumo',
-        calories: 75,
-        protein: 7.1,
-        carbs: 1.2,
-        fats: 4.8,
-      });
-      items.push({
-        foodId: 'cer-tortilla-maiz',
-        foodName: 'Tortilla de maíz nixtamalizada',
-        category: 'cereales_sin_grasa',
-        grams: 60,
-        servingsEquivalent: 2,
-        state: 'cocido',
-        calories: 128,
-        protein: 2.8,
-        carbs: 27.2,
-        fats: 1.0,
-      });
-      items.push({
-        foodId: 'ver-jitomate-bola',
-        foodName: 'Jitomate picado',
-        category: 'verduras',
-        grams: 120,
-        servingsEquivalent: 1,
-        state: 'listo_consumo',
-        calories: 22,
-        protein: 1.1,
-        carbs: 4.7,
-        fats: 0.2,
-      });
+      if (dayIndex % 2 === 1) {
+        items.push(makeFoodRef('aoa-atun-agua', Math.max(80, Math.round(100 * pScale)), 'Atún en agua con jitomate y cebolla'));
+        items.push(makeFoodRef('aoa-queso-panela', Math.max(30, Math.round(40 * pScale)), 'Queso panela fresco'));
+        items.push(makeFoodRef('cer-tortilla-maiz', Math.max(30, Math.round(50 * cScale)), 'Tortillas de maíz nixtamalizadas'));
+        items.push(makeFoodRef('ver-jitomate-bola', Math.max(80, Math.round(110 * scale)), 'Jitomate picado con limón y cilantro'));
+      } else {
+        items.push(makeFoodRef('aoa-pollo-pechuga-cocida', Math.max(80, Math.round(100 * pScale)), 'Pechuga deshebrada'));
+        items.push(makeFoodRef('aoa-queso-panela', Math.max(30, Math.round(40 * pScale)), 'Queso panela'));
+        items.push(makeFoodRef('cer-tortilla-maiz', Math.max(30, Math.round(50 * cScale)), 'Tacos ligeros al comal'));
+        items.push(makeFoodRef('gra-aguacate-hass', Math.max(20, Math.round(30 * fScale)), 'Aguacate fresco'));
+      }
     }
 
     const calculatedTotals = items.reduce(
@@ -360,7 +266,7 @@ function buildDayMeals(
         protein: Number((acc.protein + item.protein).toFixed(1)),
         carbs: Number((acc.carbs + item.carbs).toFixed(1)),
         fats: Number((acc.fats + item.fats).toFixed(1)),
-        fiber: Number((acc.fiber + 1.5).toFixed(1)), // Estimación de fibra base
+        fiber: Number((acc.fiber + 1.2).toFixed(1)),
       }),
       { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
     );

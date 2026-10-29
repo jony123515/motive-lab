@@ -17,7 +17,8 @@ import {
   CheckCircle2, 
   ArrowRight, 
   ArrowLeft,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 
 export default function AssessmentPage() {
@@ -105,6 +106,7 @@ export default function AssessmentPage() {
   );
 
   const [triageAlert, setTriageAlert] = useState<string | null>(null);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
   const handleNext = () => {
     // Si estamos en la sección clínica, evaluar banderas rojas en tiempo real
@@ -121,9 +123,12 @@ export default function AssessmentPage() {
       setCurrentStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Guardar evaluación final
+      // Guardar evaluación final y mostrar animación de cálculo científico
+      setIsGeneratingPlan(true);
       saveAssessment(formData);
-      router.push('/dashboard');
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1800);
     }
   };
 
@@ -133,6 +138,29 @@ export default function AssessmentPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  if (isGeneratingPlan) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="bg-motive-surface border border-motive-surfaceBorder rounded-3xl p-8 sm:p-12 max-w-lg w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="w-20 h-20 rounded-full bg-motive-red/15 border-2 border-motive-red/40 flex items-center justify-center mx-auto text-motive-redBright animate-pulse">
+            <Sparkles className="w-10 h-10 animate-spin" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-display font-black text-white uppercase tracking-tight">
+              Calculando tus Planes Fisiológicos
+            </h2>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Procesando tasa metabólica basal (Mifflin-St Jeor), ajustando porciones exactas con el SMAE 5ª Ed. y estructurando tu rutina {formData.anthropometry.gender === 'female' ? 'especializada en glúteo y pierna' : 'de hipertrofia integral'}...
+            </p>
+          </div>
+          <div className="w-full bg-motive-surfaceLight h-2 rounded-full overflow-hidden">
+            <div className="bg-gradient-to-r from-motive-red to-motive-redBright h-full w-full animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
@@ -202,7 +230,9 @@ export default function AssessmentPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">Sexo Biológico (Para ecuaciones GEB)</label>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Sexo / Género (Cálculo metabólico & Adaptación de Rutina)
+                </label>
                 <select
                   value={formData.anthropometry.gender}
                   onChange={(e) =>
@@ -211,11 +241,16 @@ export default function AssessmentPage() {
                       anthropometry: { ...formData.anthropometry, gender: e.target.value as Gender },
                     })
                   }
-                  className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-motive-red"
+                  className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-motive-red font-medium"
                 >
-                  <option value="male">Masculino (Fórmula Mifflin +5 kcal)</option>
-                  <option value="female">Femenino (Fórmula Mifflin -161 kcal)</option>
+                  <option value="female">♀ Mujer (Rutina especializada en Aumento de Pierna y Glúteo)</option>
+                  <option value="male">♂ Hombre (Rutina de Hipertrofia & Fuerza Muscular Integral)</option>
                 </select>
+                <p className="text-[11px] text-zinc-400 mt-1">
+                  {formData.anthropometry.gender === 'female' 
+                    ? '✨ Las rutinas femeninas priorizan la biomecánica de glúteo máximo, medio e isquiosurales (Hip Thrust, Prensa 45°, Sentadilla profunda).'
+                    : '⚡ Las rutinas masculinas distribuyen balanceadamente empuje, tracción, deltoides y piernas para máxima simetría y fuerza.'}
+                </p>
               </div>
 
               <div>
@@ -544,14 +579,19 @@ export default function AssessmentPage() {
                       sports: { ...formData.sports, daysAvailable: Number(e.target.value) as any },
                     })
                   }
-                  className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-motive-red"
+                  className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-motive-red font-medium"
                 >
-                  <option value="2">2 Días (Full Body A/B)</option>
-                  <option value="3">3 Días (Full Body A/B/C)</option>
-                  <option value="4">4 Días (Torso / Pierna) - Recomendado</option>
-                  <option value="5">5 Días (Torso / Pierna + Especialización)</option>
-                  <option value="6">6 Días (Empuje / Tirón / Piernas x 2)</option>
+                  <option value="2">2 Días {formData.anthropometry.gender === 'female' ? '(Glúteo & Pierna Fuerza / Torso & Glúteo)' : '(Full Body A/B)'}</option>
+                  <option value="3">3 Días {formData.anthropometry.gender === 'female' ? '(Glúteo Pesado / Torso Esculpido / Pierna & Glúteo Volumen)' : '(Push / Pull / Legs)'}</option>
+                  <option value="4">4 Días {formData.anthropometry.gender === 'female' ? '(Glúteo & Isquios / Torso / Cuádriceps & Glúteo / Glúteo Pump) - Recomendado' : '(Torso / Pierna x 2) - Recomendado'}</option>
+                  <option value="5">5 Días {formData.anthropometry.gender === 'female' ? '(Glúteo Máximo / Torso / Cuádriceps / Isquios / Glúteo Burnout)' : '(Torso / Pierna + Especialización)'}</option>
+                  <option value="6">6 Días {formData.anthropometry.gender === 'female' ? '(Especialización Frecuencia Alta Glúteo & Pierna)' : '(Push / Pull / Legs x 2)'}</option>
                 </select>
+                <p className="text-[11px] text-zinc-400 mt-1">
+                  {formData.anthropometry.gender === 'female'
+                    ? '🍑 Estructura adaptada para hipertrofia focalizada de glúteos e isquiosurales con recuperación neuromuscular optimizada.'
+                    : '🏋️‍♂️ Estructura neuromuscular basada en evidencia para ganancia de masa muscular y fuerza equilibrada.'}
+                </p>
               </div>
 
               <div>

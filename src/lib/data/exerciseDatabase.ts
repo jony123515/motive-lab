@@ -27,7 +27,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       ]
     },
     warmupProtocol: '1 serie x 8 reps sólo con la barra vacía; 1 serie de aproximación con el 50% de la carga de trabajo x 5 reps; 1 serie con el 75% x 3 reps; 1 serie con el 90% x 1 rep. Descanso 2 min antes de la primera serie efectiva.',
-    imageUrl: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/sentadilla-trasera.jpg',
     contraindications: ['hernia_discal_aguda_sintomatica', 'meniscopatia_aguda']
   },
   {
@@ -53,7 +53,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       ]
     },
     warmupProtocol: '1 serie de 8 reps con el 50% del peso de trabajo antes de las series efectivas.',
-    imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/prensa-piernas.jpg',
     contraindications: ['dolor_patelofemoral_agudo']
   },
 
@@ -82,7 +82,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       ]
     },
     warmupProtocol: '1 serie barra vacía x 10 reps; 50% de carga x 5 reps; 75% x 3 reps; 90% x 1 rep. 2 minutos de reposo antes de la primera serie efectiva.',
-    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/press-banca-plano.jpg',
     contraindications: ['pinzamiento_subacromial_severo', 'tendinopatia_pectoral']
   },
   {
@@ -102,7 +102,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Juntar o golpear las mancuernas en la cima perdiendo tensión mecánica.']
     },
     warmupProtocol: '1 serie de aproximación al 60% del peso de trabajo x 6 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/press-inclinado-mancuernas.jpg',
     contraindications: ['inestabilidad_anterior_glenohumeral']
   },
 
@@ -130,7 +130,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       ]
     },
     warmupProtocol: 'Barra vacía o discos ligeros x 6 reps; 50% x 4 reps; 75% x 2 reps; 90% x 1 rep.',
-    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/peso-muerto.jpg',
     contraindications: ['hernia_discal_aguda_lumbosacra', 'espondilolistesis_inestable']
   },
   {
@@ -150,7 +150,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Usar inercia lumbar para levantar el peso perdiendo estímulo en dorsales y romboides.']
     },
     warmupProtocol: '1 serie de aproximación con el 60% de la carga x 6 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/remo-barra.jpg',
     contraindications: ['lumbalgia_mecanica_aguda']
   },
   {
@@ -170,7 +170,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Balancear el torso excesivamente hacia atrás para convertir el jalón en un remo.']
     },
     warmupProtocol: '1 serie de 8 reps con el 50% del peso de trabajo.',
-    imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/jalon-pecho.jpg',
     contraindications: ['pinzamiento_subacromial']
   },
 
@@ -192,7 +192,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Empujar hacia adelante en lugar de perpendicular sobre el centro del pie.']
     },
     warmupProtocol: 'Barra vacía x 8 reps; 60% x 4 reps; 80% x 2 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/press-militar.jpg',
     contraindications: ['inestabilidad_glenohumeral_severa']
   },
   {
@@ -212,7 +212,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Utilizar balanceo de tronco o impulso de rodillas para elevar pesos excesivos.']
     },
     warmupProtocol: '1 serie ligera de 10 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/elevaciones-laterales.jpg',
     contraindications: []
   },
   {
@@ -232,7 +232,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Mover el torso hacia atrás en un balanceo inercial.']
     },
     warmupProtocol: '1 serie ligera con barra vacía x 10 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/curl-biceps.jpg',
     contraindications: ['epitrocleitis_aguda']
   },
   {
@@ -252,7 +252,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Dejar que los codos se muevan adelante y atrás convirtiendo el ejercicio en un press.']
     },
     warmupProtocol: '1 serie ligera de 10 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/extension-triceps.jpg',
     contraindications: ['epicondilitis_aguda']
   },
 
@@ -274,7 +274,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Mirar al techo o dejar caer la cabeza atrás provocando sobrecarga en la columna lumbar.']
     },
     warmupProtocol: '1 serie peso corporal x 10 reps; 1 serie con 50% de carga x 5 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/hip-thrust.jpg',
     contraindications: []
   },
   {
@@ -294,7 +294,7 @@ export const EXERCISE_DATABASE: ExerciseDefinition[] = [
       commonMistakes: ['Despegar la cadera de la almohadilla compensando con los flexores de cadera.']
     },
     warmupProtocol: '1 serie ligera de 8 reps.',
-    imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/exercises/curl-femoral.jpg',
     contraindications: []
   }
 ];

@@ -20,12 +20,13 @@ import {
   X,
   LogOut,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
-  const { currentUser, setCurrentUserRole, setSubscriptionTier, safetyTriage } = useAppState();
+  const { currentUser, setCurrentUserRole, setSubscriptionTier, safetyTriage, hasCompletedAssessment } = useAppState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
@@ -92,6 +93,7 @@ export function Navbar() {
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
+              const isGated = !hasCompletedAssessment && (link.href === '/nutricion' || link.href === '/entrenamiento');
               return (
                 <Link
                   key={link.href}
@@ -104,6 +106,11 @@ export function Navbar() {
                 >
                   <Icon className={`w-4 h-4 ${isActive ? 'text-motive-redBright' : 'text-zinc-400'}`} />
                   <span>{link.label}</span>
+                  {isGated && (
+                    <span title="Requiere diagnóstico">
+                      <Lock className="w-3 h-3 text-zinc-500" />
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -256,19 +263,28 @@ export function Navbar() {
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
+              const isGated = !hasCompletedAssessment && (link.href === '/nutricion' || link.href === '/entrenamiento');
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${
                     isActive
                       ? 'bg-motive-red/15 text-motive-redBright font-semibold'
                       : 'text-zinc-300 hover:bg-motive-surfaceLight'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{link.label}</span>
+                  <div className="flex items-center space-x-3">
+                    <Icon className="w-4 h-4" />
+                    <span>{link.label}</span>
+                  </div>
+                  {isGated && (
+                    <span className="flex items-center space-x-1 text-[10px] text-zinc-500 font-bold bg-motive-surface px-2 py-0.5 rounded border border-motive-surfaceBorder">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>Diagnóstico</span>
+                    </span>
+                  )}
                 </Link>
               );
             })}

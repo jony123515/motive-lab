@@ -33,7 +33,9 @@ interface AppContextType {
   setCurrentUserRole: (role: UserRole) => void;
   setSubscriptionTier: (tier: 'free' | 'pro' | 'coach') => void;
   assessment: UserAssessment | null;
+  hasCompletedAssessment: boolean;
   saveAssessment: (data: UserAssessment) => void;
+  resetAssessment: () => void;
   safetyTriage: SafetyTriageResult | null;
   nutritionPlan: NutritionPlan | null;
   workoutPlan: WorkoutPlan | null;
@@ -144,7 +146,8 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserProfile>(defaultUser);
-  const [assessment, setAssessment] = useState<UserAssessment | null>(defaultAssessment);
+  const [hasCompletedAssessment, setHasCompletedAssessment] = useState<boolean>(false);
+  const [assessment, setAssessment] = useState<UserAssessment | null>(null);
   const [safetyTriage, setSafetyTriage] = useState<SafetyTriageResult | null>(null);
   const [nutritionPlan, setNutritionPlan] = useState<NutritionPlan | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
@@ -156,6 +159,23 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     { date: 'Semana 3', weightKg: 78.1 },
     { date: 'Semana 4 (Actual)', weightKg: 78.5 },
   ]);
+
+  // Cargar evaluación almacenada localmente en la carga inicial
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCompleted = localStorage.getItem('motive_assessment_completed');
+      const savedAssessment = localStorage.getItem('motive_user_assessment');
+      if (savedCompleted === 'true' && savedAssessment) {
+        try {
+          const parsed = JSON.parse(savedAssessment);
+          setAssessment(parsed);
+          setHasCompletedAssessment(true);
+        } catch (e) {
+          console.error('Error parsing stored assessment:', e);
+        }
+      }
+    }
+  }, []);
 
   const [coachFeedbackList, setCoachFeedbackList] = useState([
     {
@@ -228,6 +248,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               date: assessmentData.created_at,
             },
           });
+          setHasCompletedAssessment(true);
         }
       } catch (err) {
         console.error('Error cargando datos de Supabase:', err);
@@ -251,35 +272,59 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Inicializar planes derivados
+  // Inicializar planes derivados de forma dinámica según datos del diagnóstico
   useEffect(() => {
-    if (assessment) {
+    if (assessment && hasCompletedAssessment) {
       const triage = evaluateClinicalSafety(assessment.clinical);
       setSafetyTriage(triage);
 
       if (triage.canProceedWithAutomaticPlan) {
+        // Estimar factor de actividad real desde pasos y hábitos
+        let actLevel: 'sedentary' | 'light' | 'moderate' | 'intense' | 'very_intense' = 'moderate';
+        const steps = assessment.activityRecovery?.averageDailySteps || 7000;
+        if (steps < 5000) actLevel = 'sedentary';
+        else if (steps < 8000) actLevel = 'light';
+        else if (steps < 12000) actLevel = 'moderate';
+        else actLevel = 'intense';
+
+        const days = assessment.sports?.daysAvailable || 4;
         const metabolic = calculateMetabolicTargets(
           assessment.anthropometry,
           assessment.goal.primary,
-          'moderate',
-          assessment.sports.daysAvailable
+          actLevel,
+          days
         );
+
         const nutrPlan = generate7DayNutritionPlan(
           assessment.userId,
           metabolic,
-          assessment.diet.preferredMealsPerDay
+          assessment.diet?.preferredMealsPerDay || 4
         );
+
+        const expLevel = 
+          (assessment.sports?.yearsTraining || 0) < 1 
+            ? 'beginner' 
+            : (assessment.sports?.yearsTraining || 0) > 3 
+              ? 'advanced' 
+              : 'intermediate';
+
         const workPlan = generatePersonalizedWorkoutPlan(
           assessment.userId,
-          assessment.sports.daysAvailable,
-          'intermediate'
+          days,
+          expLevel,
+          assessment.anthropometry.gender,
+          assessment.goal.primary,
+          assessment.sports?.trainingLocation || 'gym'
         );
 
         setNutritionPlan(nutrPlan);
         setWorkoutPlan(workPlan);
       }
+    } else {
+      setNutritionPlan(null);
+      setWorkoutPlan(null);
     }
-  }, [assessment]);
+  }, [assessment, hasCompletedAssessment]);
 
   const setCurrentUserRole = (role: UserRole) => {
     setCurrentUser((prev) => ({ ...prev, role }));
@@ -287,6 +332,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const saveAssessment = (data: UserAssessment) => {
     setAssessment(data);
+    setHasCompletedAssessment(true);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('motive_user_assessment', JSON.stringify(data));
+      localStorage.setItem('motive_assessment_completed', 'true');
+    }
 
     const client = supabase;
     if (isSupabaseConfigured && client) {
@@ -304,6 +355,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }).then(({ error }) => {
         if (error) console.error('Error guardando evaluación en Supabase:', error);
       });
+    }
+  };
+
+  const resetAssessment = () => {
+    setAssessment(null);
+    setHasCompletedAssessment(false);
+    setNutritionPlan(null);
+    setWorkoutPlan(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('motive_user_assessment');
+      localStorage.removeItem('motive_assessment_completed');
     }
   };
 
@@ -409,7 +471,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         setCurrentUserRole,
         setSubscriptionTier,
         assessment,
+        hasCompletedAssessment,
         saveAssessment,
+        resetAssessment,
         safetyTriage,
         nutritionPlan,
         workoutPlan,

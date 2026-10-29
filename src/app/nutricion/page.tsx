@@ -20,6 +20,7 @@ import {
   Lock
 } from 'lucide-react';
 import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
+import { AssessmentGate } from '@/components/auth/AssessmentGate';
 
 export default function NutritionPage() {
   const { currentUser, nutritionPlan, substituteMealFood } = useAppState();
@@ -73,7 +74,8 @@ export default function NutritionPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <AssessmentGate featureName="tu Plan Nutricional Personalizado SMAE">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Header Bar */}
       <div className="bg-motive-surface border border-motive-surfaceBorder rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl">
@@ -372,6 +374,7 @@ export default function NutritionPage() {
         </div>
       )}
 
-    </div>
+      </div>
+    </AssessmentGate>
   );
 }

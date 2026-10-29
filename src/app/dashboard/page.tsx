@@ -20,7 +20,8 @@ import {
   ChevronRight,
   Clock,
   Award,
-  CreditCard
+  CreditCard,
+  ClipboardCheck
 } from 'lucide-react';
 import { evaluateDoubleProgression } from '@/lib/engines/progressionEngine';
 
@@ -70,6 +71,7 @@ export default function DashboardPage() {
     currentUser, 
     setSubscriptionTier,
     assessment, 
+    hasCompletedAssessment,
     nutritionPlan, 
     workoutPlan, 
     waterConsumedMl, 
@@ -131,6 +133,32 @@ export default function DashboardPage() {
       <Suspense fallback={null}>
         <PaymentBanner onUpgrade={setSubscriptionTier} />
       </Suspense>
+
+      {/* Alerta de Diagnóstico Pendiente */}
+      {!hasCompletedAssessment && (
+        <div className="bg-gradient-to-r from-motive-red/20 via-motive-surfaceLight to-motive-red/10 border-2 border-motive-red/50 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-start space-x-4">
+            <div className="w-12 h-12 rounded-2xl bg-motive-red/20 border border-motive-red/40 flex items-center justify-center flex-shrink-0 text-motive-redBright">
+              <ClipboardCheck className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg sm:text-xl font-display font-black text-white uppercase tracking-tight">
+                Paso 1: Completa tu Diagnóstico Inicial
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed">
+                Tus planes de nutrición (SMAE) y rutinas de entrenamiento están bloqueados hasta registrar tus datos biométricos, objetivos y género. Toma sólo 3 minutos para desbloquearlos.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/evaluacion"
+            className="px-6 py-3.5 rounded-xl bg-motive-red hover:bg-motive-redBright text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-motive-red/30 flex items-center space-x-2 flex-shrink-0 hover:scale-105 transition-all"
+          >
+            <span>Iniciar Diagnóstico Ahora</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
 
       {/* Alerta de Triaje Clínico si existe riesgo */}
       {safetyTriage && !safetyTriage.canProceedWithAutomaticPlan && (
