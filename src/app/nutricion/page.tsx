@@ -14,14 +14,17 @@ import {
   AlertTriangle, 
   ChevronRight, 
   X, 
-  Sparkles,
-  Info,
-  Layers
+  Sparkles, 
+  Info, 
+  Layers,
+  Lock
 } from 'lucide-react';
+import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
 
 export default function NutritionPage() {
-  const { nutritionPlan, substituteMealFood } = useAppState();
+  const { currentUser, nutritionPlan, substituteMealFood } = useAppState();
 
+  const isFree = currentUser.subscriptionTier === 'free' && currentUser.role === 'client';
   const [activeDay, setActiveDay] = useState(1);
   const [selectedFoodForSub, setSelectedFoodForSub] = useState<{
     mealId: string;
@@ -88,11 +91,17 @@ export default function NutritionPage() {
         </div>
 
         <button
-          onClick={handleOpenShoppingList}
+          onClick={() => {
+            if (isFree) {
+              window.location.href = '/precios';
+            } else {
+              handleOpenShoppingList();
+            }
+          }}
           className="inline-flex items-center space-x-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30 hover:scale-[1.02] transition-transform"
         >
-          <ShoppingCart className="w-4 h-4" />
-          <span>Generar Lista de Compras Semanal</span>
+          {isFree ? <Lock className="w-4 h-4 text-amber-300" /> : <ShoppingCart className="w-4 h-4" />}
+          <span>{isFree ? 'Lista de Compras (Plan Pro)' : 'Generar Lista de Compras Semanal'}</span>
         </button>
       </div>
 
@@ -108,14 +117,32 @@ export default function NutritionPage() {
                 : 'bg-motive-surface border-motive-surfaceBorder text-zinc-400 hover:text-white hover:border-zinc-700'
             }`}
           >
-            <span>{day.dayName}</span>
+            <div className="flex items-center space-x-1.5">
+              <span>{day.dayName}</span>
+              {day.dayNumber > 1 && isFree && (
+                <Lock className="w-3 h-3 text-amber-400" />
+              )}
+            </div>
             <span className="block text-[10px] font-normal opacity-80 mt-0.5">{day.dailyTotals.calories} kcal</span>
           </button>
         ))}
       </div>
 
-      {/* Resumen de Macros del Día Seleccionado */}
-      <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6">
+      {/* Resumen de Macros del Día Seleccionado o Paywall */}
+      {activeDay > 1 && isFree ? (
+        <SubscriptionGate
+          requiredTier="pro"
+          title={`Día ${activeDay} (${currentDayMenu?.dayName}): Exclusivo Plan Atleta Pro`}
+          description="Tu Plan Básico incluye acceso completo al Día 1 para que conozcas la estructura. Para desbloquear los 7 días de menús con macros calculados al gramo y sustituciones SMAE, suscríbete a Atleta Pro."
+          featureList={[
+            'Menú estructurado de lunes a domingo sincronizado con tus días de entrenamiento',
+            'Herramienta de sustitución inteligente de alimentos con equivalencia SMAE',
+            'Generador automático de lista de compras para el supermercado',
+            'Rendimientos de cocción calculados (peso crudo vs peso cocido)',
+          ]}
+        />
+      ) : (
+        <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-motive-surfaceBorder/60 pb-4">
           <div>
             <h3 className="text-lg font-display font-bold text-white uppercase">
@@ -210,6 +237,7 @@ export default function NutritionPage() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Modal Interactivo de Sustitución SMAE */}
       {selectedFoodForSub && (

@@ -24,7 +24,7 @@ import {
 
 export function Navbar() {
   const pathname = usePathname();
-  const { currentUser, setCurrentUserRole, safetyTriage } = useAppState();
+  const { currentUser, setCurrentUserRole, setSubscriptionTier, safetyTriage } = useAppState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
@@ -143,6 +143,31 @@ export function Navbar() {
                     >
                       <span>{getRoleLabel(r)}</span>
                       {currentUser.role === r && <span className="w-1.5 h-1.5 rounded-full bg-motive-redBright"></span>}
+                    </button>
+                  ))}
+
+                  <div className="px-3 py-1.5 border-b border-t border-motive-surfaceBorder/60 mt-1">
+                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Nivel de Membresía</p>
+                  </div>
+                  {[
+                    { tier: 'free' as const, label: 'Plan Básico ($0 MXN)' },
+                    { tier: 'pro' as const, label: '★ Atleta Pro ($249 MXN)' },
+                    { tier: 'coach' as const, label: '★ Coach VIP ($999 MXN)' },
+                  ].map((p) => (
+                    <button
+                      key={p.tier}
+                      onClick={() => {
+                        setSubscriptionTier(p.tier);
+                        setRoleDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors flex items-center justify-between ${
+                        currentUser.subscriptionTier === p.tier
+                          ? 'bg-emerald-500/10 text-emerald-400 font-bold'
+                          : 'text-zinc-300 hover:bg-motive-surface hover:text-white'
+                      }`}
+                    >
+                      <span>{p.label}</span>
+                      {currentUser.subscriptionTier === p.tier && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
                     </button>
                   ))}
                 </div>

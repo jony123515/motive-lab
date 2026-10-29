@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useAppState } from '@/lib/store/appState';
+import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
 import { 
   FileText, 
   Printer, 
@@ -22,32 +23,49 @@ export default function ReportsPage() {
     window.print();
   };
 
+  const isFree = currentUser.subscriptionTier === 'free' && currentUser.role === 'client';
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
       
-      {/* Action Bar (oculta al imprimir) */}
-      <div className="print:hidden bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold text-motive-redBright uppercase tracking-wider block">Módulo de Seguimiento Clínico</span>
-          <h1 className="text-xl sm:text-2xl font-display font-black text-white uppercase mt-0.5">
-            Informe Digital e Imprimible del Atleta
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Genera un documento profesional para archivo médico, presentación a tu entrenador o seguimiento personal.
-          </p>
-        </div>
+      {/* Paywall si el usuario está en Plan Básico */}
+      {isFree ? (
+        <SubscriptionGate
+          requiredTier="pro"
+          title="Descarga de Reportes Clínicos en PDF"
+          description="Los informes imprimibles de grado médico y resúmenes antropométricos están reservados para atletas con membresía activa Plan Atleta Pro o Plan con Coach."
+          featureList={[
+            'Informe de composición corporal y gasto basal de alta resolución',
+            'Desglose imprimible de macronutrientes y distribución horaria',
+            'Plan de entrenamiento periodizado en formato PDF para el gimnasio',
+            'Historial de sobrecarga progresiva y evolución de fuerza',
+          ]}
+        />
+      ) : (
+        <>
+          {/* Action Bar (oculta al imprimir) */}
+          <div className="print:hidden bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold text-motive-redBright uppercase tracking-wider block">Módulo de Seguimiento Clínico</span>
+              <h1 className="text-xl sm:text-2xl font-display font-black text-white uppercase mt-0.5">
+                Informe Digital e Imprimible del Atleta
+              </h1>
+              <p className="text-xs text-zinc-400 mt-1">
+                Genera un documento profesional para archivo médico, presentación a tu entrenador o seguimiento personal.
+              </p>
+            </div>
 
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30 hover:scale-[1.02] transition-transform"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Imprimir o Exportar PDF</span>
-        </button>
-      </div>
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30 hover:scale-[1.02] transition-transform"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Imprimir o Exportar PDF</span>
+            </button>
+          </div>
 
-      {/* DOCUMENTO FORMAL IMPRIMIBLE (Estilo clínico oscuro en pantalla, optimizado para blanco/negro al imprimir) */}
-      <div className="bg-motive-surface print:bg-white print:text-black border border-motive-surfaceBorder print:border-none rounded-3xl p-8 sm:p-12 space-y-8 shadow-2xl">
+          {/* DOCUMENTO FORMAL IMPRIMIBLE */}
+          <div className="bg-motive-surface print:bg-white print:text-black border border-motive-surfaceBorder print:border-none rounded-3xl p-8 sm:p-12 space-y-8 shadow-2xl">
         
         {/* Cabecera del Reporte */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-motive-surfaceBorder print:border-black/20 pb-6">
@@ -230,7 +248,9 @@ export default function ReportsPage() {
           </div>
         </div>
 
-      </div>
+        </div>
+        </>
+      )}
 
     </div>
   );
