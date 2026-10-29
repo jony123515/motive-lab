@@ -23,11 +23,15 @@ interface UserProfile {
   role: UserRole;
   birthDate: string;
   avatarUrl?: string;
+  subscriptionTier?: 'free' | 'pro' | 'coach';
+  subscriptionStatus?: string;
+  stripeCustomerId?: string;
 }
 
 interface AppContextType {
   currentUser: UserProfile;
   setCurrentUserRole: (role: UserRole) => void;
+  setSubscriptionTier: (tier: 'free' | 'pro' | 'coach') => void;
   assessment: UserAssessment | null;
   saveAssessment: (data: UserAssessment) => void;
   safetyTriage: SafetyTriageResult | null;
@@ -52,6 +56,8 @@ const defaultUser: UserProfile = {
   role: 'client',
   birthDate: '1996-05-14',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+  subscriptionTier: 'pro',
+  subscriptionStatus: 'active',
 };
 
 const defaultAssessment: UserAssessment = {
@@ -189,6 +195,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             role: profile.role || 'client',
             birthDate: profile.birth_date || '1998-01-01',
             avatarUrl: profile.avatar_url || defaultUser.avatarUrl,
+            subscriptionTier: profile.subscription_tier || 'free',
+            subscriptionStatus: profile.subscription_status || 'inactive',
+            stripeCustomerId: profile.stripe_customer_id,
           });
         }
 
@@ -385,11 +394,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const setSubscriptionTier = (tier: 'free' | 'pro' | 'coach') => {
+    setCurrentUser((prev) => ({
+      ...prev,
+      subscriptionTier: tier,
+      subscriptionStatus: 'active',
+    }));
+  };
+
   return (
     <AppContext.Provider
       value={{
         currentUser,
         setCurrentUserRole,
+        setSubscriptionTier,
         assessment,
         saveAssessment,
         safetyTriage,

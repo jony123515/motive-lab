@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAppState } from '@/lib/store/appState';
 import { 
   Flame, 
@@ -18,13 +19,56 @@ import {
   Sparkles,
   ChevronRight,
   Clock,
-  Award
+  Award,
+  CreditCard
 } from 'lucide-react';
 import { evaluateDoubleProgression } from '@/lib/engines/progressionEngine';
+
+function PaymentBanner({ onUpgrade }: { onUpgrade: (tier: 'pro' | 'coach') => void }) {
+  const searchParams = useSearchParams();
+  const payment = searchParams.get('payment');
+  const plan = searchParams.get('plan') as 'pro' | 'coach' | null;
+  const [closed, setClosed] = useState(false);
+
+  useEffect(() => {
+    if (payment && plan) {
+      onUpgrade(plan);
+    }
+  }, [payment, plan, onUpgrade]);
+
+  if (closed || !payment) return null;
+
+  const isSimulated = payment === 'simulated_success';
+  const planName = plan === 'coach' ? 'Plan con Coach & Nutriólogo' : 'Plan Atleta Pro';
+
+  return (
+    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5 flex items-start justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="flex items-start space-x-3.5">
+        <Sparkles className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <h4 className="font-display font-bold text-emerald-300 text-sm uppercase">
+            {isSimulated ? '🎉 Modo de Prueba: Pago Simulado Aprobado' : '🎉 ¡Suscripción Activada Exitosamente!'}
+          </h4>
+          <p className="text-xs text-emerald-200/90 leading-relaxed">
+            Tu cuenta ahora cuenta con todos los beneficios de <strong>{planName}</strong>. Acceso completo a nutrición SMAE de 7 días, biblioteca de videos y sobrecarga progresiva.
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={() => setClosed(true)}
+        className="text-emerald-400 hover:text-white text-xs font-bold px-2 py-1"
+        title="Cerrar notificación"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { 
     currentUser, 
+    setSubscriptionTier,
     assessment, 
     nutritionPlan, 
     workoutPlan, 
@@ -83,6 +127,11 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
+      {/* Notificación de Estado de Pago */}
+      <Suspense fallback={null}>
+        <PaymentBanner onUpgrade={setSubscriptionTier} />
+      </Suspense>
+
       {/* Alerta de Triaje Clínico si existe riesgo */}
       {safetyTriage && !safetyTriage.canProceedWithAutomaticPlan && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 flex items-start space-x-4">
@@ -103,7 +152,15 @@ export default function DashboardPage() {
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-motive-red/15 text-motive-redBright border border-motive-red/30">
               Mesociclo 1 • Semana 1 de 6
             </span>
-            <span className="text-xs text-zinc-400 font-medium">Estado: Óptimo</span>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+              currentUser.subscriptionTier === 'coach'
+                ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                : currentUser.subscriptionTier === 'pro'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+            }`}>
+              {currentUser.subscriptionTier === 'coach' ? '★ PLAN COACH VIP' : currentUser.subscriptionTier === 'pro' ? '★ PLAN ATLETA PRO' : 'PLAN BÁSICO'}
+            </span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-display font-black text-white uppercase tracking-tight">
             Bienvenido, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400">{currentUser.name}</span>
@@ -114,6 +171,23 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {currentUser.subscriptionTier === 'free' ? (
+            <Link
+              href="/precios"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-transform flex items-center space-x-1.5"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Mejorar a PRO</span>
+            </Link>
+          ) : (
+            <Link
+              href="/precios"
+              className="px-4 py-2.5 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder text-xs font-bold text-zinc-300 hover:text-white transition-colors flex items-center space-x-1.5"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Gestionar Plan</span>
+            </Link>
+          )}
           <Link
             href="/evaluacion"
             className="px-4 py-2.5 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder text-xs font-bold text-zinc-300 hover:text-white transition-colors"

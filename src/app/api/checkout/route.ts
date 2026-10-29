@@ -28,6 +28,11 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       customer_email: userEmail || undefined,
       client_reference_id: userId,
+      allow_promotion_codes: true,
+      billing_address_collection: 'auto',
+      tax_id_collection: {
+        enabled: true,
+      },
       line_items: [
         {
           price_data: {
