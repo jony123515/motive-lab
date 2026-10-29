@@ -14,15 +14,41 @@ import {
   AlertCircle,
   ChevronRight,
   Filter,
-  Search
+  Search,
+  Landmark,
+  DollarSign,
+  ExternalLink,
+  Sparkles
 } from 'lucide-react';
 
 export default function CoachPortalPage() {
   const { currentUser, coachFeedbackList, reviewCoachFeedback, assessment, workoutPlan, nutritionPlan } = useAppState();
 
-  const [activeTab, setActiveTab] = useState<'pending_reviews' | 'athletes' | 'approvals'>('pending_reviews');
+  const [activeTab, setActiveTab] = useState<'pending_reviews' | 'athletes' | 'approvals' | 'payouts'>('pending_reviews');
   const [replyText, setReplyText] = useState('');
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(coachFeedbackList[0]?.id || null);
+  const [connectingStripe, setConnectingStripe] = useState(false);
+
+  const handleConnectStripe = async () => {
+    setConnectingStripe(true);
+    try {
+      const res = await fetch('/api/connect/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coachId: currentUser.id, email: currentUser.email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'No se pudo iniciar la conexión con Stripe Connect.');
+      }
+    } catch {
+      alert('Error de conexión con Stripe Connect.');
+    } finally {
+      setConnectingStripe(false);
+    }
+  };
 
   const isSpecialist = currentUser.role === 'coach' || currentUser.role === 'nutritionist' || currentUser.role === 'admin';
 
@@ -109,6 +135,18 @@ export default function CoachPortalPage() {
           }`}
         >
           <span>Aprobación de Planes & Fórmulas</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('payouts')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-colors flex items-center space-x-1.5 ${
+            activeTab === 'payouts'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+              : 'text-zinc-400 hover:text-white hover:bg-motive-surface'
+          }`}
+        >
+          <Landmark className="w-3.5 h-3.5" />
+          <span>Honorarios & Stripe Connect</span>
         </button>
       </div>
 
@@ -276,6 +314,93 @@ export default function CoachPortalPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB 4: Honorarios y Stripe Connect (Marketplace Payouts) */}
+      {activeTab === 'payouts' && (
+        <div className="space-y-8 animate-in fade-in duration-300">
+          
+          {/* Tarjetas de Métricas Financieras */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 relative overflow-hidden">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Honorarios Acumulados (Mes)</span>
+              <div className="mt-3 flex items-baseline space-x-2">
+                <span className="text-3xl font-display font-black text-white">$2,397</span>
+                <span className="text-xs font-semibold text-emerald-400">MXN Netos</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-2">Correspondiente al 80% de 3 atletas VIP activos.</p>
+            </div>
+
+            <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Atletas Asignados (Plan VIP)</span>
+              <div className="mt-3 flex items-baseline space-x-2">
+                <span className="text-3xl font-display font-black text-motive-redBright">3</span>
+                <span className="text-xs text-zinc-400">Atletas activos</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-2">Suscripción mensual de $999 MXN por atleta.</p>
+            </div>
+
+            <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Próxima Transferencia Automática</span>
+              <div className="mt-3 flex items-baseline space-x-2">
+                <span className="text-3xl font-display font-black text-emerald-400">Viernes</span>
+                <span className="text-xs text-zinc-400">Semanal</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-2">Depósito directo vía SPEI a tu cuenta CLABE.</p>
+            </div>
+          </div>
+
+          {/* Banner de Vinculación con Stripe Connect */}
+          <div className="bg-gradient-to-r from-motive-surface via-motive-surfaceLight to-motive-surface border border-emerald-500/30 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl">
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider">
+                <Landmark className="w-3.5 h-3.5" />
+                <span>Stripe Connect Express • México (SPEI / CLABE)</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-display font-black text-white uppercase tracking-tight">
+                Recibe tus honorarios directo en tu banco
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                Conecta tu cuenta bancaria (BBVA, Santander, Banorte, Nu, Citibanamex, etc.) de forma segura a través de Stripe Connect. MOTIVE LAB procesa los cobros de tus atletas y transfiere tus ganancias automáticamente cada semana sin fricción.
+              </p>
+            </div>
+
+            <button
+              onClick={handleConnectStripe}
+              disabled={connectingStripe}
+              className="px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-display font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center space-x-2 flex-shrink-0 transition-transform hover:scale-[1.02]"
+            >
+              <Landmark className="w-4 h-4" />
+              <span>{connectingStripe ? 'Conectando...' : 'Vincular Cuenta CLABE con Stripe'}</span>
+            </button>
+          </div>
+
+          {/* Historial Reciente de Payouts */}
+          <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 space-y-4">
+            <h4 className="text-sm font-display font-bold text-white uppercase tracking-wider">
+              Desglose de Ingresos por Atleta Asignado
+            </h4>
+            <div className="divide-y divide-motive-surfaceBorder/60">
+              {[
+                { atleta: 'Alejandro Morales', plan: 'Plan Coach VIP', fecha: '2026-10-25', bruto: '$999 MXN', neto: '$799.20 MXN', estado: 'Procesado' },
+                { atleta: 'Mariana Silva', plan: 'Plan Coach VIP', fecha: '2026-10-18', bruto: '$999 MXN', neto: '$799.20 MXN', estado: 'Procesado' },
+                { atleta: 'Carlos Mendoza', plan: 'Plan Coach VIP', fecha: '2026-10-12', bruto: '$999 MXN', neto: '$799.20 MXN', estado: 'Procesado' },
+              ].map((row, idx) => (
+                <div key={idx} className="py-3.5 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-bold text-white">{row.atleta}</p>
+                    <p className="text-zinc-500 text-[11px]">{row.plan} • {row.fecha}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-emerald-400">+{row.neto}</p>
+                    <span className="text-[10px] text-zinc-500 font-medium">Bruto: {row.bruto} (Tarifa plataforma 20%)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       )}
 
