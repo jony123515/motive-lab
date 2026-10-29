@@ -53,10 +53,10 @@ const defaultUser: UserProfile = {
   id: 'usr-demo-001',
   name: 'Alejandro Morales',
   email: 'alejandro.motive@ejemplo.com',
-  role: 'client',
+  role: 'admin',
   birthDate: '1996-05-14',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-  subscriptionTier: 'pro',
+  subscriptionTier: 'coach',
   subscriptionStatus: 'active',
 };
 
