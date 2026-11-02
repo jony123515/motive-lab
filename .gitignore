@@ -29,3 +29,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# external folders
+la-cumbrena-ad/
+la-cumbrena-web/

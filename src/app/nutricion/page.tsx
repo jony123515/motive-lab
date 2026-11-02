@@ -23,6 +23,16 @@ import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
 import { AssessmentGate } from '@/components/auth/AssessmentGate';
 import { PhysiologicalGuaranteeCard } from '@/components/dashboard/PhysiologicalGuaranteeCard';
 
+const MEAL_TYPE_LABELS: Record<string, string> = {
+  breakfast: 'DESAYUNO',
+  morning_snack: 'COLACIÓN MAÑANA',
+  lunch: 'COMIDA PRINCIPAL',
+  afternoon_snack: 'COLACIÓN TARDE / MERIENDA',
+  dinner: 'CENA',
+  pre_workout: 'PRE-ENTRENO',
+  post_workout: 'SNACK NOCTURNO / POST-ENTRENO',
+};
+
 export default function NutritionPage() {
   const { currentUser, nutritionPlan, substituteMealFood } = useAppState();
 
@@ -180,7 +190,7 @@ export default function NutritionPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <span className="text-[10px] font-bold text-motive-redBright uppercase tracking-wider block">
-                      {meal.type.replace('_', ' ')}
+                      {MEAL_TYPE_LABELS[meal.type] || meal.type.replace('_', ' ')}
                     </span>
                     <h4 className="text-base font-display font-bold text-white">{meal.name}</h4>
                   </div>

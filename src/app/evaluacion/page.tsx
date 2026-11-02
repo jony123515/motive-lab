@@ -212,7 +212,7 @@ export default function AssessmentPage() {
                   <Apple className="w-3.5 h-3.5" />
                   <span>Nutrición SMAE 5ª Ed.</span>
                 </span>
-                <span className="text-xs font-bold text-zinc-400">7 Días Variados</span>
+                <span className="text-xs font-bold text-zinc-400">{formData.diet.preferredMealsPerDay} Comidas / Día</span>
               </div>
 
               <div>
@@ -833,9 +833,10 @@ export default function AssessmentPage() {
                   }
                   className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-motive-red"
                 >
-                  <option value="3">3 Comidas Principales</option>
+                  <option value="3">3 Comidas Principales (Desayuno, Comida, Cena)</option>
                   <option value="4">4 Tiempos (3 Comidas + 1 Colación Pre/Post)</option>
-                  <option value="5">5 Tiempos (3 Comidas + 2 Snacks)</option>
+                  <option value="5">5 Tiempos (3 Comidas + 2 Colaciones / Snacks)</option>
+                  <option value="6">6 Tiempos (3 Comidas + 3 Colaciones / Volumen)</option>
                 </select>
               </div>
 
