@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { evaluateDoubleProgression } from '@/lib/engines/progressionEngine';
 import { PhysiologicalGuaranteeCard } from '@/components/dashboard/PhysiologicalGuaranteeCard';
+import { trackConversionEvent } from '@/lib/analytics/conversionTracker';
 
 function PaymentBanner({ onUpgrade }: { onUpgrade: (tier: 'pro' | 'coach') => void }) {
   const searchParams = useSearchParams();
@@ -35,6 +36,8 @@ function PaymentBanner({ onUpgrade }: { onUpgrade: (tier: 'pro' | 'coach') => vo
   useEffect(() => {
     if (payment && plan) {
       onUpgrade(plan);
+      trackConversionEvent('checkout_completed', { plan_id: plan, payment_status: payment });
+      trackConversionEvent('subscription_activated', { plan_id: plan });
     }
   }, [payment, plan, onUpgrade]);
 

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAppState } from '@/lib/store/appState';
 import { SUBSCRIPTION_PLANS, PlanConfig } from '@/lib/stripe';
+import { trackConversionEvent } from '@/lib/analytics/conversionTracker';
 import { 
   Check, 
   Flame, 
@@ -22,11 +23,26 @@ export default function PricingPage() {
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    trackConversionEvent('pricing_viewed', { page: '/precios' });
+  }, []);
+
   const handleSubscribe = async (plan: PlanConfig) => {
+    trackConversionEvent('plan_selected', {
+      plan_id: plan.id,
+      billing_interval: billingInterval,
+      price_mxn: billingInterval === 'yearly' ? plan.priceMxnYearly : plan.priceMxnMonthly,
+    });
+
     if (plan.id === 'free') {
       window.location.href = '/registro';
       return;
     }
+
+    trackConversionEvent('checkout_started', {
+      plan_id: plan.id,
+      billing_interval: billingInterval,
+    });
 
     setLoadingPlanId(plan.id);
 

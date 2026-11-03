@@ -9,7 +9,7 @@ import { Flame, Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Info } from 'l
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setCurrentUserRole } = useAppState();
+  const { setCurrentUserRole, loginUser } = useAppState();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,6 +33,7 @@ export default function LoginPage() {
         }
 
         // Consultar el rol del usuario en profiles
+        let resolvedRole: 'client' | 'coach' | 'nutritionist' | 'admin' = 'client';
         if (data.user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -41,16 +42,20 @@ export default function LoginPage() {
             .single();
 
           if (profile?.role) {
+            resolvedRole = profile.role;
             setCurrentUserRole(profile.role);
           }
         }
 
+        loginUser(email, resolvedRole);
         router.push('/dashboard');
       } else {
         // Modo Demo local sin Supabase configurado todavía
+        const isAdminEmail = email.toLowerCase().includes('admin') || email.toLowerCase().includes('coach');
+        loginUser(email, isAdminEmail ? 'admin' : 'client');
         setTimeout(() => {
           router.push('/dashboard');
-        }, 600);
+        }, 400);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');

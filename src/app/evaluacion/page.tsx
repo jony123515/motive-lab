@@ -23,6 +23,7 @@ import {
   Flame
 } from 'lucide-react';
 import { calculateMetabolicTargets } from '@/lib/engines/metabolicEngine';
+import { trackConversionEvent } from '@/lib/analytics/conversionTracker';
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -30,6 +31,10 @@ export default function AssessmentPage() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 6;
+
+  React.useEffect(() => {
+    trackConversionEvent('evaluation_started', { step: 1 });
+  }, []);
 
   // Estado del formulario prellenado con datos del expediente o default
   const [formData, setFormData] = useState<UserAssessment>(
@@ -131,6 +136,10 @@ export default function AssessmentPage() {
       setIsGeneratingPlan(true);
       try {
         saveAssessment(formData);
+        trackConversionEvent('evaluation_completed', {
+          goal: formData.goal.primary,
+          days_available: formData.sports.daysAvailable,
+        });
       } catch (err) {
         console.error('Error saving assessment:', err);
       }

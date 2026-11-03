@@ -34,6 +34,9 @@ export interface BodyCheckIn {
 
 interface AppContextType {
   currentUser: UserProfile;
+  isAuthenticated: boolean;
+  loginUser: (email?: string, role?: UserRole) => void;
+  logoutUser: () => void;
   setCurrentUserRole: (role: UserRole) => void;
   setSubscriptionTier: (tier: 'free' | 'pro' | 'coach') => void;
   assessment: UserAssessment | null;
@@ -62,10 +65,10 @@ const defaultUser: UserProfile = {
   id: 'usr-demo-001',
   name: 'Alejandro Morales',
   email: 'alejandro.motive@ejemplo.com',
-  role: 'admin',
+  role: 'client',
   birthDate: '1996-05-14',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-  subscriptionTier: 'coach',
+  subscriptionTier: 'pro',
   subscriptionStatus: 'active',
 };
 
@@ -153,6 +156,7 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserProfile>(defaultUser);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [hasCompletedAssessment, setHasCompletedAssessment] = useState<boolean>(false);
   const [assessment, setAssessment] = useState<UserAssessment | null>(null);
   const [safetyTriage, setSafetyTriage] = useState<SafetyTriageResult | null>(null);
@@ -218,9 +222,23 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     },
   ]);
 
-  // Cargar evaluación almacenada localmente en la carga inicial
+  // Cargar evaluación y sesión almacenada localmente en la carga inicial
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const savedAuth = localStorage.getItem('motive_is_authenticated');
+      const savedRole = localStorage.getItem('motive_user_role') as UserRole | null;
+      const savedEmail = localStorage.getItem('motive_user_email');
+      if (savedAuth === 'true') {
+        setIsAuthenticated(true);
+        if (savedRole) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            role: savedRole,
+            email: savedEmail || prev.email,
+          }));
+        }
+      }
+
       const savedCompleted = localStorage.getItem('motive_assessment_completed');
       const savedAssessment = localStorage.getItem('motive_user_assessment');
       if (savedCompleted === 'true' && savedAssessment) {
@@ -393,6 +411,33 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentUserRole = (role: UserRole) => {
     setCurrentUser((prev) => ({ ...prev, role }));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('motive_user_role', role);
+    }
+  };
+
+  const loginUser = (email?: string, role: UserRole = 'client') => {
+    setIsAuthenticated(true);
+    setCurrentUser((prev) => ({
+      ...prev,
+      email: email || prev.email,
+      role,
+    }));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('motive_is_authenticated', 'true');
+      localStorage.setItem('motive_user_role', role);
+      if (email) localStorage.setItem('motive_user_email', email);
+    }
+  };
+
+  const logoutUser = () => {
+    setIsAuthenticated(false);
+    setCurrentUser((prev) => ({ ...prev, role: 'client' }));
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('motive_is_authenticated');
+      localStorage.removeItem('motive_user_role');
+      localStorage.removeItem('motive_user_email');
+    }
   };
 
   const saveAssessment = (data: UserAssessment) => {
@@ -595,6 +640,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         currentUser,
+        isAuthenticated,
+        loginUser,
+        logoutUser,
         setCurrentUserRole,
         setSubscriptionTier,
         assessment,
