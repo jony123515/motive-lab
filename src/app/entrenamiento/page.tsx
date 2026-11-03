@@ -114,13 +114,86 @@ export default function TrainingPage() {
 
   const [progressionAlert, setProgressionAlert] = useState<string | null>(null);
 
+  // Cronómetro de Descanso Inteligente (Modo Entrenamiento en Vivo)
+  const [restSecondsLeft, setRestSecondsLeft] = useState<number>(0);
+  const [restTotalSeconds, setRestTotalSeconds] = useState<number>(90);
+  const [isRestRunning, setIsRestRunning] = useState<boolean>(false);
+  const [restLabel, setRestLabel] = useState<string>('Listo para iniciar descanso');
+  const [restFinishedBanner, setRestFinishedBanner] = useState<boolean>(false);
+
+  const playRestFinishedChime = () => {
+    try {
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200]);
+      }
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        [523.25, 659.25, 783.99].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.14);
+          gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.14);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.14 + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.14);
+          osc.stop(ctx.currentTime + i * 0.14 + 0.26);
+        });
+      }
+    } catch {
+      // Ignore audio errors if blocked by browser autoplay policy
+    }
+  };
+
+  React.useEffect(() => {
+    if (!isRestRunning || restSecondsLeft <= 0) return;
+    const interval = setInterval(() => {
+      setRestSecondsLeft((prev) => {
+        if (prev <= 1) {
+          setIsRestRunning(false);
+          setRestFinishedBanner(true);
+          playRestFinishedChime();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isRestRunning, restSecondsLeft]);
+
+  const startRestTimer = (seconds: number, label?: string) => {
+    setRestTotalSeconds(seconds);
+    setRestSecondsLeft(seconds);
+    setIsRestRunning(true);
+    setRestFinishedBanner(false);
+    if (label) setRestLabel(label);
+  };
+
+  const formatTimer = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
   const activeSession = workoutPlan?.sessions[activeSessionIndex] || workoutPlan?.sessions[0];
 
-  const handleSetUpdate = (setId: string, reps: number, weight: number, rir: number, pain: boolean) => {
+  const handleSetUpdate = (
+    setId: string,
+    reps: number,
+    weight: number,
+    rir: number,
+    pain: boolean,
+    restSeconds = 120,
+    exerciseName = 'Serie Completada'
+  ) => {
     setLoggedSets(prev => ({
       ...prev,
       [setId]: { reps, weight, rir, pain, done: true }
     }));
+
+    startRestTimer(restSeconds, `${exerciseName} (${weight} kg × ${reps} reps)`);
 
     // Evaluar sobrecarga progresiva
     const mockPrescribed: PrescribedSet = {
@@ -129,7 +202,7 @@ export default function TrainingPage() {
       targetRepsMin: 6,
       targetRepsMax: 8,
       targetRIR: 2,
-      restSeconds: 180,
+      restSeconds,
     };
 
     const currentSets = Object.values({
@@ -274,6 +347,119 @@ export default function TrainingPage() {
               </ul>
             </div>
 
+            {/* CRONÓMETRO DE DESCANSO INTELIGENTE (MODO ENTRENAMIENTO EN VIVO) */}
+            <div className={`rounded-2xl p-4 sm:p-5 border transition-all ${
+              restFinishedBanner
+                ? 'bg-emerald-500/15 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                : isRestRunning
+                ? 'bg-motive-red/10 border-motive-red/40 shadow-lg shadow-motive-red/10'
+                : 'bg-motive-surfaceLight border-motive-surfaceBorder'
+            }`}>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3.5">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-display font-black text-base ${
+                    restFinishedBanner
+                      ? 'bg-emerald-500 text-black'
+                      : isRestRunning
+                      ? 'bg-motive-red text-white animate-pulse'
+                      : 'bg-motive-surface border border-motive-surfaceBorder text-zinc-300'
+                  }`}>
+                    {restSecondsLeft > 0 ? formatTimer(restSecondsLeft) : <Clock className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-motive-redBright">
+                        Cronómetro Fisiológico de Descanso (ATP-PCr)
+                      </span>
+                      {isRestRunning && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-motive-red text-white">
+                          En Curso
+                        </span>
+                      )}
+                      {restFinishedBanner && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500 text-black">
+                          ¡Listo para la siguiente serie!
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-white mt-0.5">
+                      {restFinishedBanner
+                        ? '🔔 ¡Descanso completado! Tu fosfocreatina muscular está recuperada al 90%.'
+                        : restSecondsLeft > 0
+                        ? `Recuperando: ${restLabel}`
+                        : 'Al marcar cualquier serie como "Registrar", el cronómetro iniciará automáticamente.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Controles Rápidos del Cronómetro */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { sec: 60, label: '60s (Aislamiento)' },
+                    { sec: 90, label: '90s (Hipertrofia)' },
+                    { sec: 120, label: '2m (Compuesto)' },
+                    { sec: 180, label: '3m (Fuerza)' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.sec}
+                      type="button"
+                      onClick={() => startRestTimer(preset.sec, `Descanso Manual (${preset.label})`)}
+                      className="px-2.5 py-1.5 rounded-lg bg-motive-surface border border-motive-surfaceBorder hover:border-motive-red text-[11px] font-bold text-zinc-300 hover:text-white transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+
+                  {restSecondsLeft > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setRestSecondsLeft((prev) => Math.max(5, prev - 15))}
+                        className="px-2 py-1.5 rounded-lg bg-motive-surface border border-motive-surfaceBorder text-[11px] font-bold text-zinc-400 hover:text-white"
+                      >
+                        -15s
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRestSecondsLeft((prev) => prev + 15)}
+                        className="px-2 py-1.5 rounded-lg bg-motive-surface border border-motive-surfaceBorder text-[11px] font-bold text-zinc-400 hover:text-white"
+                      >
+                        +15s
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsRestRunning(!isRestRunning)}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-[11px] font-bold text-amber-300 hover:bg-amber-500/30"
+                      >
+                        {isRestRunning ? 'Pausar' : 'Reanudar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRestRunning(false);
+                          setRestSecondsLeft(0);
+                          setRestFinishedBanner(false);
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-[11px] font-bold text-rose-300 hover:bg-rose-500/25"
+                      >
+                        Omitir
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Barra de Progreso del Descanso */}
+              {restSecondsLeft > 0 && (
+                <div className="w-full bg-motive-surface h-1.5 rounded-full overflow-hidden mt-3">
+                  <div
+                    className="bg-gradient-to-r from-motive-red to-amber-400 h-full transition-all duration-1000"
+                    style={{ width: `${Math.min(100, (restSecondsLeft / Math.max(1, restTotalSeconds)) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Sugerencia de Sobrecarga Progresiva */}
             {progressionAlert && (
               <div className="p-4 rounded-xl bg-motive-red/10 border border-motive-red/30 flex items-start space-x-3 text-xs">
@@ -411,7 +597,9 @@ export default function TrainingPage() {
                                       Number(repsEl?.value || 8),
                                       Number(kgEl?.value || 80),
                                       Number(rirEl?.value || 2),
-                                      painEl?.checked || false
+                                      painEl?.checked || false,
+                                      set.restSeconds || 120,
+                                      `${item.exercise?.nameSpanish || item.exerciseId} • Serie #${set.setNumber}`
                                     );
                                   }}
                                   className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
@@ -1037,6 +1225,51 @@ export default function TrainingPage() {
               <p>• El análisis evalúa profundidad, trayectoria y ángulo tibiofemoral; no sustituye un examen ortopédico presencial.</p>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Widget Flotante de Descanso en Vivo (Abajo a la Izquierda) */}
+      {(restSecondsLeft > 0 || restFinishedBanner) && (
+        <div className="fixed bottom-5 left-5 z-40 max-w-xs w-full bg-[#0e0e14]/95 backdrop-blur-md border-2 border-motive-red/60 rounded-2xl p-3.5 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-display font-black text-sm flex-shrink-0 ${
+                restFinishedBanner ? 'bg-emerald-500 text-black' : 'bg-motive-red text-white animate-pulse'
+              }`}>
+                {restSecondsLeft > 0 ? formatTimer(restSecondsLeft) : '✓'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-wider text-motive-redBright">
+                  {restFinishedBanner ? '¡Descanso Completo!' : 'Descanso en Vivo'}
+                </p>
+                <p className="text-xs font-bold text-white truncate">
+                  {restFinishedBanner ? 'Inicia tu siguiente serie' : restLabel}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-1 flex-shrink-0">
+              {restSecondsLeft > 0 && (
+                <button
+                  onClick={() => setRestSecondsLeft((prev) => prev + 15)}
+                  className="px-2 py-1 rounded-lg bg-motive-surface border border-motive-surfaceBorder text-[10px] font-bold text-zinc-300 hover:text-white"
+                >
+                  +15s
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setIsRestRunning(false);
+                  setRestSecondsLeft(0);
+                  setRestFinishedBanner(false);
+                }}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-motive-surface"
+                title="Cerrar cronómetro"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

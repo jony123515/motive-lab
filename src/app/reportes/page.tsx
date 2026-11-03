@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppState } from '@/lib/store/appState';
 import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
+import { generateWeeklyShoppingList } from '@/lib/engines/nutritionEngine';
 import { 
   FileText, 
   Printer, 
@@ -13,17 +14,22 @@ import {
   HeartPulse, 
   TrendingUp, 
   Calendar,
-  ShieldCheck
+  ShieldCheck,
+  QrCode,
+  ShoppingCart
 } from 'lucide-react';
 
 export default function ReportsPage() {
   const { currentUser, assessment, nutritionPlan, workoutPlan, progressWeightHistory } = useAppState();
+  const [selectedPrintDay, setSelectedPrintDay] = useState(1);
 
   const handlePrint = () => {
     window.print();
   };
 
   const isFree = currentUser.subscriptionTier === 'free' && currentUser.role === 'client';
+  const activeMenuDay = nutritionPlan?.weeklyDays.find((d) => d.dayNumber === selectedPrintDay) || nutritionPlan?.weeklyDays[0];
+  const shoppingList = nutritionPlan ? generateWeeklyShoppingList(nutritionPlan).slice(0, 14) : [];
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
@@ -55,13 +61,28 @@ export default function ReportsPage() {
               </p>
             </div>
 
-            <button
-              onClick={handlePrint}
-              className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30 hover:scale-[1.02] transition-transform"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Imprimir o Exportar PDF</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center space-x-2 text-xs">
+                <span className="text-zinc-400 font-semibold">Día de Menú en PDF:</span>
+                <select
+                  value={selectedPrintDay}
+                  onChange={(e) => setSelectedPrintDay(Number(e.target.value))}
+                  className="bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-2.5 py-2 text-xs text-white font-bold"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                    <option key={d} value={d}>Día {d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={handlePrint}
+                className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30 hover:scale-[1.02] transition-transform"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Descargar Expediente Completo (PDF)</span>
+              </button>
+            </div>
           </div>
 
           {/* DOCUMENTO FORMAL IMPRIMIBLE */}
@@ -194,11 +215,100 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* SECCIÓN 3: Evolución de Fuerza y Marcas Registradas */}
+        {/* SECCIÓN 3: Menú Diario SMAE y Lista de Súper Imprimible */}
+        {activeMenuDay && (
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-base uppercase text-white print:text-black flex items-center space-x-2 border-b border-motive-surfaceBorder print:border-black/20 pb-2">
+              <Apple className="w-4 h-4 text-motive-redBright" />
+              <span>3. Plan Alimenticio SMAE Imprimible ({activeMenuDay.dayName} • {activeMenuDay.dailyTotals.calories} kcal)</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              {activeMenuDay.meals.map((meal) => (
+                <div
+                  key={meal.id}
+                  className="p-3.5 bg-motive-surfaceLight print:bg-zinc-50 rounded-xl border border-motive-surfaceBorder print:border-zinc-300 space-y-2"
+                >
+                  <div className="flex items-center justify-between border-b border-motive-surfaceBorder/60 print:border-zinc-300 pb-1.5">
+                    <strong className="text-white print:text-black uppercase">{meal.name}</strong>
+                    <span className="text-[11px] font-bold text-motive-redBright print:text-red-700">
+                      {meal.totals.calories} kcal ({meal.totals.protein}g P)
+                    </span>
+                  </div>
+                  <ul className="space-y-1 text-[11px] text-zinc-300 print:text-zinc-800">
+                    {meal.items.map((item, idx) => (
+                      <li key={idx} className="flex items-center justify-between">
+                        <span>• {item.foodName} ({item.state})</span>
+                        <strong className="text-white print:text-black">{item.grams} g</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            {shoppingList.length > 0 && (
+              <div className="p-4 bg-motive-surfaceLight print:bg-zinc-50 rounded-xl border border-motive-surfaceBorder print:border-zinc-300 space-y-2">
+                <p className="text-xs font-bold uppercase text-white print:text-black flex items-center space-x-1.5">
+                  <ShoppingCart className="w-3.5 h-3.5 text-motive-redBright" />
+                  <span>Lista Consolidada del Supermercado (7 Días):</span>
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-zinc-300 print:text-zinc-800">
+                  {shoppingList.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between border-b border-motive-surfaceBorder/40 print:border-zinc-200 pb-1">
+                      <span className="truncate pr-1">{s.foodName}</span>
+                      <strong className="text-white print:text-black flex-shrink-0">{s.estimatedHouseholdMeasure}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SECCIÓN 4: Rutina Periodizada de Entrenamiento Completa */}
+        {workoutPlan && (
+          <div className="space-y-3">
+            <h3 className="font-display font-bold text-base uppercase text-white print:text-black flex items-center space-x-2 border-b border-motive-surfaceBorder print:border-black/20 pb-2">
+              <Dumbbell className="w-4 h-4 text-motive-redBright" />
+              <span>4. Prescripción de Entrenamiento Periodizado ({workoutPlan.sessions.length} Días / Semana)</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              {workoutPlan.sessions.map((sess) => (
+                <div
+                  key={sess.id}
+                  className="p-3.5 bg-motive-surfaceLight print:bg-zinc-50 rounded-xl border border-motive-surfaceBorder print:border-zinc-300 space-y-2"
+                >
+                  <div className="flex items-center justify-between border-b border-motive-surfaceBorder/60 print:border-zinc-300 pb-1">
+                    <strong className="text-white print:text-black uppercase">{sess.dayName}</strong>
+                    <span className="text-[10px] font-bold uppercase text-zinc-400 print:text-zinc-600">{sess.exercises.length} Ejercicios</span>
+                  </div>
+                  <ul className="space-y-1 text-[11px] text-zinc-300 print:text-zinc-800">
+                    {sess.exercises.map((ex, i) => {
+                      const workingSets = ex.sets.filter((s) => s.setType === 'working_effective');
+                      const repRange = workingSets[0] ? `${workingSets[0].targetRepsMin}-${workingSets[0].targetRepsMax}` : '8-12';
+                      return (
+                        <li key={i} className="flex items-center justify-between">
+                          <span className="truncate pr-2">{i + 1}. {ex.exercise?.nameSpanish || ex.exerciseId}</span>
+                          <strong className="text-white print:text-black flex-shrink-0">
+                            {workingSets.length}x{repRange} (RIR {workingSets[0]?.targetRIR ?? 2})
+                          </strong>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SECCIÓN 5: Evolución de Fuerza y Marcas Registradas */}
         <div className="space-y-3">
           <h3 className="font-display font-bold text-base uppercase text-white print:text-black flex items-center space-x-2 border-b border-motive-surfaceBorder print:border-black/20 pb-2">
             <Dumbbell className="w-4 h-4 text-motive-redBright" />
-            <span>3. Rendimiento Neuromuscular y Marcas de Fuerza (1RM Verificadas)</span>
+            <span>5. Rendimiento Neuromuscular y Marcas de Fuerza (1RM Verificadas)</span>
           </h3>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-center">
@@ -244,6 +354,14 @@ export default function ReportsPage() {
               <div className="w-48 h-0.5 bg-zinc-600 print:bg-black mx-auto sm:mx-0 mb-2" />
               <p className="font-bold text-white print:text-black">Mtra. Elena Villalobos (MSc, CISSN)</p>
               <p className="text-[11px]">Nutrióloga Clínica Deportiva • Cédula #1029384</p>
+            </div>
+            <div className="flex items-center space-x-3 bg-motive-surfaceLight print:bg-zinc-100 p-3 rounded-xl border border-motive-surfaceBorder print:border-zinc-300">
+              <QrCode className="w-10 h-10 text-motive-redBright print:text-black flex-shrink-0" />
+              <div className="text-left text-[10px]">
+                <strong className="text-white print:text-black block uppercase">Verificación Digital</strong>
+                <span>motive-lab.vercel.app</span>
+                <span className="block text-emerald-400 print:text-black font-bold">Certificado ACSM / SMAE</span>
+              </div>
             </div>
           </div>
         </div>

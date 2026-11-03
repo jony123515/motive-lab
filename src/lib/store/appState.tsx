@@ -17,6 +17,21 @@ import { calculateHydrationPlan } from '@/lib/engines/hydrationEngine';
 import { evaluateClinicalSafety, SafetyTriageResult } from '@/lib/engines/safetyTriageEngine';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
+export interface BodyCheckIn {
+  id: string;
+  date: string;
+  weightKg: number;
+  waistCm: number;
+  hipCm: number;
+  armCm: number;
+  thighCm: number;
+  bodyFatPercentage?: number;
+  adherencePct: number;
+  notes?: string;
+  frontPhotoUrl?: string;
+  sidePhotoUrl?: string;
+}
+
 interface AppContextType {
   currentUser: UserProfile;
   setCurrentUserRole: (role: UserRole) => void;
@@ -36,6 +51,9 @@ interface AppContextType {
   saveLoggedWorkout: (log: LoggedWorkoutSession) => void;
   progressWeightHistory: { date: string; weightKg: number }[];
   addWeightLog: (weightKg: number) => void;
+  checkInsHistory: BodyCheckIn[];
+  addBodyCheckIn: (checkIn: Omit<BodyCheckIn, 'id'>) => void;
+  applyMetabolicAutoAdjust: (calorieDelta: number) => void;
   coachFeedbackList: { id: string; clientName: string; date: string; message: string; status: 'pending' | 'reviewed' }[];
   reviewCoachFeedback: (id: string, reply: string) => void;
 }
@@ -147,6 +165,57 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     { date: 'Semana 2', weightKg: 77.6 },
     { date: 'Semana 3', weightKg: 78.1 },
     { date: 'Semana 4 (Actual)', weightKg: 78.5 },
+  ]);
+
+  const [checkInsHistory, setCheckInsHistory] = useState<BodyCheckIn[]>([
+    {
+      id: 'chk-1',
+      date: 'Semana 1 (Inicial)',
+      weightKg: 77.2,
+      waistCm: 83.5,
+      hipCm: 97.0,
+      armCm: 36.5,
+      thighCm: 56.0,
+      bodyFatPercentage: 15.8,
+      adherencePct: 92,
+      notes: 'Inicio del mesociclo. Buena digestión con equivalentes SMAE.',
+    },
+    {
+      id: 'chk-2',
+      date: 'Semana 2',
+      weightKg: 77.6,
+      waistCm: 83.0,
+      hipCm: 97.5,
+      armCm: 36.8,
+      thighCm: 56.5,
+      bodyFatPercentage: 15.3,
+      adherencePct: 95,
+      notes: 'Incremento de fuerza en press de banca y sentadilla.',
+    },
+    {
+      id: 'chk-3',
+      date: 'Semana 3',
+      weightKg: 78.1,
+      waistCm: 82.4,
+      hipCm: 98.0,
+      armCm: 37.1,
+      thighCm: 57.0,
+      bodyFatPercentage: 14.9,
+      adherencePct: 90,
+      notes: 'Cintura reduciendo mientras sube masa muscular.',
+    },
+    {
+      id: 'chk-4',
+      date: 'Semana 4 (Actual)',
+      weightKg: 78.5,
+      waistCm: 82.0,
+      hipCm: 98.5,
+      armCm: 37.4,
+      thighCm: 57.5,
+      bodyFatPercentage: 14.5,
+      adherencePct: 96,
+      notes: 'Excelente recomposición corporal y plenitud de glucógeno.',
+    },
   ]);
 
   // Cargar evaluación almacenada localmente en la carga inicial
@@ -444,6 +513,68 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     ]);
   };
 
+  const addBodyCheckIn = (checkIn: Omit<BodyCheckIn, 'id'>) => {
+    const newEntry: BodyCheckIn = {
+      ...checkIn,
+      id: `chk-${Date.now()}`,
+    };
+    setCheckInsHistory((prev) => [...prev, newEntry]);
+    setProgressWeightHistory((prev) => [
+      ...prev,
+      { date: checkIn.date, weightKg: checkIn.weightKg },
+    ]);
+  };
+
+  const applyMetabolicAutoAdjust = (calorieDelta: number) => {
+    if (!nutritionPlan) return;
+    const currentMetabolic = nutritionPlan.methodology;
+    const newCalorieTarget = Math.max(1200, currentMetabolic.calorieTarget + calorieDelta);
+    const deltaCarbsGrams = Math.round((calorieDelta * 0.7) / 4);
+    const deltaFatsGrams = Math.round((calorieDelta * 0.3) / 9);
+    const newCarbs = Math.max(80, currentMetabolic.macroTargetGrams.carbs + deltaCarbsGrams);
+    const newFats = Math.max(35, currentMetabolic.macroTargetGrams.fats + deltaFatsGrams);
+    const prot = currentMetabolic.macroTargetGrams.protein;
+    const weightKg = assessment?.anthropometry.weightKg || 75;
+
+    const updatedMetabolicResult = {
+      formulaUsed: currentMetabolic.formulaUsed,
+      bmr: currentMetabolic.bmr,
+      neatMultiplier: 1.5,
+      tdee: currentMetabolic.tdee,
+      calorieTarget: newCalorieTarget,
+      goalDeltaCalories: newCalorieTarget - currentMetabolic.tdee,
+      macros: {
+        proteinGrams: prot,
+        proteinPerKg: Number((prot / weightKg).toFixed(2)),
+        carbsGrams: newCarbs,
+        fatsGrams: newFats,
+        fiberGrams: currentMetabolic.macroTargetGrams.fiber,
+      },
+      calorieContributions: {
+        proteinKcal: prot * 4,
+        carbsKcal: newCarbs * 4,
+        fatsKcal: newFats * 9,
+      },
+      mathematicalAuditTrail: {
+        bmrFormula: currentMetabolic.formulaUsed,
+        tdeeFormula: `GET: ${currentMetabolic.tdee} kcal`,
+        targetFormula: `${currentMetabolic.explanation} [Auto-Ajuste Metabólico Aplicado: ${calorieDelta > 0 ? '+' : ''}${calorieDelta} kcal/día]`,
+        macroMethodology: 'ISSN 2026 + Auto-Ajuste Semanal',
+      },
+    };
+
+    const regenerated = generate7DayNutritionPlan(
+      assessment?.userId || currentUser.id,
+      updatedMetabolicResult,
+      assessment?.diet?.preferredMealsPerDay || 4,
+      assessment?.diet,
+      assessment?.clinical,
+      assessment?.goal?.primary || 'hypertrophy'
+    );
+
+    setNutritionPlan(regenerated);
+  };
+
   const reviewCoachFeedback = (id: string, reply: string) => {
     setCoachFeedbackList((prev) =>
       prev.map((item) =>
@@ -481,6 +612,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         saveLoggedWorkout,
         progressWeightHistory,
         addWeightLog,
+        checkInsHistory,
+        addBodyCheckIn,
+        applyMetabolicAutoAdjust,
         coachFeedbackList,
         reviewCoachFeedback,
       }}

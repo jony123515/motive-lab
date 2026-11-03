@@ -80,11 +80,64 @@ export default function DashboardPage() {
     resetWater,
     progressWeightHistory,
     addWeightLog,
+    checkInsHistory,
+    addBodyCheckIn,
+    applyMetabolicAutoAdjust,
     safetyTriage
   } = useAppState();
 
   const [selectedDayTab, setSelectedDayTab] = useState(1);
   const [newWeightInput, setNewWeightInput] = useState('');
+  const [activeMetricChart, setActiveMetricChart] = useState<'weightKg' | 'waistCm' | 'hipCm' | 'thighCm'>('weightKg');
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [metabolicAdjustBanner, setMetabolicAdjustBanner] = useState<string | null>(null);
+  const [checkInForm, setCheckInForm] = useState({
+    weightKg: assessment?.anthropometry.weightKg || 78.5,
+    waistCm: assessment?.anthropometry.waistCm || 82,
+    hipCm: assessment?.anthropometry.hipCm || 98,
+    armCm: 37.5,
+    thighCm: 57.5,
+    adherencePct: 95,
+    notes: '',
+    frontPhotoUrl: '',
+  });
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setCheckInForm((prev) => ({ ...prev, frontPhotoUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCheckIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    addBodyCheckIn({
+      date: `Semana ${checkInsHistory.length + 1}`,
+      weightKg: Number(checkInForm.weightKg),
+      waistCm: Number(checkInForm.waistCm),
+      hipCm: Number(checkInForm.hipCm),
+      armCm: Number(checkInForm.armCm),
+      thighCm: Number(checkInForm.thighCm),
+      adherencePct: Number(checkInForm.adherencePct),
+      notes: checkInForm.notes || 'Check-in semanal registrado',
+      frontPhotoUrl: checkInForm.frontPhotoUrl || undefined,
+    });
+    setShowCheckInModal(false);
+  };
+
+  const handleApplyAutoAdjust = (delta: number) => {
+    applyMetabolicAutoAdjust(delta);
+    setMetabolicAdjustBanner(
+      delta < 0
+        ? `✓ Ajuste Anti-Estancamiento aplicado (${delta} kcal/día). Tu menú SMAE de 7 días ha sido recalculado automáticamente.`
+        : `✓ Ajuste Anabólico aplicado (+${delta} kcal/día). Tu menú SMAE de 7 días ha sido recalculado automáticamente.`
+    );
+  };
   
   // Estado para registrar series en vivo de la sesión de hoy
   const [loggedSetsState, setLoggedSetsState] = useState<Record<string, { reps: number; weight: number; rir: number; pain: boolean; done: boolean }>>({
@@ -494,43 +547,140 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* Gráfica de Progreso de Peso */}
-          <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-motive-surfaceBorder/60 pb-3">
+          {/* Check-in Semanal Automatizado, Gráficas Multi-Métrica & Auto-Ajuste Metabólico */}
+          <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-motive-surfaceBorder/60 pb-4">
               <div>
-                <h4 className="font-display font-bold text-base text-white uppercase">Evolución de Peso Corporal</h4>
-                <p className="text-xs text-zinc-400">Promedios semanales para descartar fluctuaciones por agua o glucógeno.</p>
+                <span className="text-[10px] font-black uppercase tracking-wider text-motive-redBright block">
+                  Seguimiento Antropométrico & Bio-Feedback
+                </span>
+                <h4 className="font-display font-black text-lg text-white uppercase">
+                  Check-in Semanal & Evolución Corporal
+                </h4>
+                <p className="text-xs text-zinc-400">
+                  Monitoreo de peso, perímetros corporales y ajuste calórico automático contra estancamientos.
+                </p>
               </div>
-              <form onSubmit={handleWeightSubmit} className="flex items-center space-x-2">
-                <input
-                  type="number"
-                  step="0.1"
-                  placeholder="Nuevo kg"
-                  value={newWeightInput}
-                  onChange={(e) => setNewWeightInput(e.target.value)}
-                  className="w-24 bg-motive-surfaceLight border border-motive-surfaceBorder rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-motive-red"
-                />
-                <button
-                  type="submit"
-                  className="px-3 py-1 rounded-lg bg-motive-red text-white text-xs font-bold hover:bg-motive-redDark"
-                >
-                  +
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={() => setShowCheckInModal(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/25 hover:scale-[1.02] transition-transform flex items-center space-x-1.5 self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Check-in Semanal</span>
+              </button>
             </div>
 
-            {/* Visual chart bars */}
-            <div className="grid grid-cols-4 gap-4 pt-4 items-end h-40">
-              {progressWeightHistory.map((pt, i) => (
-                <div key={i} className="flex flex-col items-center justify-end h-full space-y-2">
-                  <span className="text-xs font-bold text-white">{pt.weightKg} kg</span>
-                  <div
-                    className="w-full bg-gradient-to-t from-motive-red to-motive-redBright rounded-t-lg transition-all"
-                    style={{ height: `${((pt.weightKg - 70) / 15) * 100}%` }}
-                  />
-                  <span className="text-[10px] text-zinc-500 font-medium truncate w-full text-center">{pt.date}</span>
-                </div>
+            {/* Selector de Métrica Corporal */}
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { key: 'weightKg' as const, label: 'Peso Corporal (kg)', unit: 'kg' },
+                { key: 'waistCm' as const, label: 'Cintura (cm)', unit: 'cm' },
+                { key: 'hipCm' as const, label: 'Cadera / Glúteo (cm)', unit: 'cm' },
+                { key: 'thighCm' as const, label: 'Pierna / Muslo (cm)', unit: 'cm' },
+              ].map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setActiveMetricChart(m.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    activeMetricChart === m.key
+                      ? 'bg-motive-red text-white border-motive-redBright shadow-md shadow-motive-red/20'
+                      : 'bg-motive-surfaceLight border-motive-surfaceBorder text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {m.label}
+                </button>
               ))}
+            </div>
+
+            {/* Gráfica Visual Interactiva por Métrica */}
+            {(() => {
+              const unit = activeMetricChart === 'weightKg' ? 'kg' : 'cm';
+              const values = checkInsHistory.map((c) => Number(c[activeMetricChart] || 0));
+              const minVal = Math.min(...values) - 2;
+              const maxVal = Math.max(...values) + 1;
+              const range = Math.max(4, maxVal - minVal);
+              const firstVal = values[0] || 0;
+              const lastVal = values[values.length - 1] || 0;
+              const delta = Number((lastVal - firstVal).toFixed(1));
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs bg-motive-surfaceLight px-3.5 py-2 rounded-xl border border-motive-surfaceBorder">
+                    <span className="text-zinc-400">
+                      Inicio: <strong className="text-white">{firstVal} {unit}</strong> ➔ Actual: <strong className="text-white">{lastVal} {unit}</strong>
+                    </span>
+                    <span className={`font-bold px-2 py-0.5 rounded ${
+                      delta === 0
+                        ? 'bg-zinc-800 text-zinc-300'
+                        : activeMetricChart === 'waistCm'
+                        ? delta < 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
+                        : 'bg-emerald-500/15 text-emerald-400'
+                    }`}>
+                      Cambio Total: {delta > 0 ? `+${delta}` : delta} {unit}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 pt-4 items-end h-40">
+                    {checkInsHistory.slice(-5).map((pt, i) => {
+                      const val = Number(pt[activeMetricChart] || 0);
+                      const pct = Math.min(100, Math.max(18, Math.round(((val - minVal) / range) * 100)));
+                      return (
+                        <div key={pt.id || i} className="flex flex-col items-center justify-end h-full space-y-2">
+                          <span className="text-xs font-bold text-white">{val} {unit}</span>
+                          <div
+                            className="w-full bg-gradient-to-t from-motive-red to-motive-redBright rounded-t-xl transition-all duration-500"
+                            style={{ height: `${pct}%` }}
+                          />
+                          <span className="text-[10px] text-zinc-400 font-medium truncate w-full text-center">{pt.date}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Motor de Auto-Ajuste Metabólico Inteligente */}
+            <div className="p-4 rounded-2xl bg-motive-surfaceLight border border-motive-surfaceBorder space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <h5 className="text-xs font-display font-black text-white uppercase tracking-wider">
+                    Motor de Auto-Ajuste Metabólico (Rompe-Estancamientos)
+                  </h5>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                  Adherencia Promedio: {checkInsHistory[checkInsHistory.length - 1]?.adherencePct || 95}%
+                </span>
+              </div>
+
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                ¿Llevas 2 semanas con el peso o cintura estancados pese a cumplir tu plan al 90%? Aplica un micro-ajuste fisiológico con 1 clic y el sistema recalculará automáticamente las porciones de tus 7 días del menú SMAE:
+              </p>
+
+              {metabolicAdjustBanner && (
+                <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-xs text-emerald-300 font-semibold">
+                  {metabolicAdjustBanner}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleApplyAutoAdjust(-150)}
+                  className="px-3.5 py-2 rounded-xl bg-motive-surface border border-motive-surfaceBorder hover:border-motive-red text-xs font-bold text-zinc-200 hover:text-white transition-colors"
+                >
+                  🔥 Recorte Definición (-150 kcal / día)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyAutoAdjust(150)}
+                  className="px-3.5 py-2 rounded-xl bg-motive-surface border border-motive-surfaceBorder hover:border-emerald-500 text-xs font-bold text-zinc-200 hover:text-white transition-colors"
+                >
+                  💪 Empuje Masa Muscular (+150 kcal / día)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -641,6 +791,141 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Modal de Nuevo Check-in Semanal + Comparador Visual */}
+      {showCheckInModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-motive-surface border border-motive-surfaceBorder rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-start justify-between border-b border-motive-surfaceBorder pb-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-motive-redBright block">
+                  Control Quincenal / Semanal
+                </span>
+                <h3 className="text-lg font-display font-black text-white uppercase">
+                  Registrar Check-in Corporal
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowCheckInModal(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCheckIn} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-zinc-300 uppercase mb-1">Peso en Ayunas (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={checkInForm.weightKg}
+                    onChange={(e) => setCheckInForm({ ...checkInForm, weightKg: Number(e.target.value) })}
+                    className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-zinc-300 uppercase mb-1">Cintura (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={checkInForm.waistCm}
+                    onChange={(e) => setCheckInForm({ ...checkInForm, waistCm: Number(e.target.value) })}
+                    className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-zinc-300 uppercase mb-1">Cadera / Glúteo (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={checkInForm.hipCm}
+                    onChange={(e) => setCheckInForm({ ...checkInForm, hipCm: Number(e.target.value) })}
+                    className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-zinc-300 uppercase mb-1">Brazo Contraído (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={checkInForm.armCm}
+                    onChange={(e) => setCheckInForm({ ...checkInForm, armCm: Number(e.target.value) })}
+                    className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-zinc-300 uppercase mb-1">Pierna / Muslo (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={checkInForm.thighCm}
+                    onChange={(e) => setCheckInForm({ ...checkInForm, thighCm: Number(e.target.value) })}
+                    className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-zinc-300 uppercase mb-1">% Adherencia al Plan</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={checkInForm.adherencePct}
+                    onChange={(e) => setCheckInForm({ ...checkInForm, adherencePct: Number(e.target.value) })}
+                    className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-zinc-300 uppercase mb-1">Foto de Progreso (Opcional - Frente / Perfil)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="w-full text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-motive-red file:text-white hover:file:bg-motive-redDark"
+                />
+                {checkInForm.frontPhotoUrl && (
+                  <div className="mt-2 h-28 w-28 rounded-xl overflow-hidden border border-motive-surfaceBorder">
+                    <img src={checkInForm.frontPhotoUrl} alt="Previsualización" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-bold text-zinc-300 uppercase mb-1">Sensaciones de Energía, Digestión y Sueño</label>
+                <textarea
+                  rows={2}
+                  value={checkInForm.notes}
+                  onChange={(e) => setCheckInForm({ ...checkInForm, notes: e.target.value })}
+                  placeholder="Ej. Excelente bombeo muscular, sin hambre entre comidas..."
+                  className="w-full bg-motive-surfaceLight border border-motive-surfaceBorder rounded-xl px-3 py-2 text-white placeholder-zinc-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCheckInModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder text-zinc-300 font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30"
+                >
+                  Guardar Check-in
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

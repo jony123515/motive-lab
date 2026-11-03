@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14141A" />
+      <stop offset="100%" stop-color="#0A0A0C" />
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF2A2A" />
+      <stop offset="50%" stop-color="#DC2626" />
+      <stop offset="100%" stop-color="#991B1B" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#DC2626" stroke-width="12" stroke-opacity="0.4" />
+  <circle cx="256" cy="240" r="150" fill="#DC2626" fill-opacity="0.12" />
+  <path d="M268 88C268 88 358 152 358 254C358 320 312 372 256 372C200 372 154 320 154 254C154 206 184 164 206 142C206 142 198 186 226 202C214 156 242 114 268 88ZM256 332C282 332 302 310 302 280C302 248 274 224 262 208C262 208 258 234 242 244C234 232 232 218 232 218C216 234 210 256 210 280C210 310 230 332 256 332Z" fill="url(#flameGrad)" />
+  <text x="256" y="442" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="44" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">MOTIVE LAB</text>
+</svg>

@@ -8,6 +8,16 @@ import { FloatingCoachBot } from '@/components/chat/FloatingCoachBot';
 export const metadata: Metadata = {
   title: 'MOTIVE LAB | Ecosistema de Fisiología, Nutrición SMAE y Fuerza',
   description: 'Plataforma profesional de prescripción deportiva y nutricional basada en evidencia clínica, ACSM 2026, ISSN y Sistema Mexicano de Alimentos Equivalentes.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'MOTIVE LAB',
+  },
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

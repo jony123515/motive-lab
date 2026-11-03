@@ -33,11 +33,94 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   post_workout: 'SNACK NOCTURNO / POST-ENTRENO',
 };
 
+interface SocialMealOption {
+  id: string;
+  name: string;
+  portionDesc: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  sodiumLevel: 'moderado' | 'alto';
+  clinicalTip: string;
+}
+
+const SOCIAL_MEALS_CATALOG: SocialMealOption[] = [
+  {
+    id: 'tacos-asada-pastor',
+    name: 'Tacos de Carne Asada o Pastor',
+    portionDesc: 'Orden de 4 tacos en tortilla de maíz con cilantro, cebolla y salsa (sin copia doble)',
+    calories: 680,
+    protein: 38,
+    carbs: 68,
+    fats: 28,
+    sodiumLevel: 'moderado',
+    clinicalTip: 'Excelente perfil proteico. Pide tortilla sencilla en lugar de doble para ahorrar ~280 kcal de carbohidratos refinados.',
+  },
+  {
+    id: 'pizza-pepperoni',
+    name: 'Pizza en Reunión Social',
+    portionDesc: '2 rebanadas grandes de Pizza Pepperoni o Suprema',
+    calories: 640,
+    protein: 26,
+    carbs: 72,
+    fats: 26,
+    sodiumLevel: 'alto',
+    clinicalTip: 'Acompáñala con una ensalada fresca o 1 vaso de agua mineral con limón antes de comer para elevar la saciedad gástrica.',
+  },
+  {
+    id: 'hamburguesa-papas',
+    name: 'Hamburguesa de Res con Queso + Papas',
+    portionDesc: '1 hamburguesa artesanal de res con queso + ½ porción de papas',
+    calories: 920,
+    protein: 44,
+    carbs: 84,
+    fats: 45,
+    sodiumLevel: 'alto',
+    clinicalTip: 'Aporta 44g de proteína de alto valor biológico. Evita aderezos cremosos extra y refrescos azucarados.',
+  },
+  {
+    id: 'sushi-rollos',
+    name: 'Cena de Sushi / Comida Japonesa',
+    portionDesc: '2 rollos (1 rollo natural con salmón/atún + 1 rollo especial)',
+    calories: 760,
+    protein: 34,
+    carbs: 102,
+    fats: 22,
+    sodiumLevel: 'alto',
+    clinicalTip: 'La salsa de soya contiene alto sodio; úsala con moderación para evitar retención de líquidos de 0.8 kg al día siguiente.',
+  },
+  {
+    id: 'alitas-boneless',
+    name: 'Boneless o Alitas con Amigos',
+    portionDesc: 'Orden de 8 piezas con salsa BBQ/Buffalo y bastones de apio',
+    calories: 740,
+    protein: 42,
+    carbs: 38,
+    fats: 46,
+    sodiumLevel: 'alto',
+    clinicalTip: 'Prefiere alitas horneadas/naturales sobre empanizadas y pide el aderezo ranch aparte.',
+  },
+  {
+    id: 'brindis-bebidas',
+    name: 'Evento Social / Copas o Cervezas Light',
+    portionDesc: '3 cervezas ultra/light o 2 copas de vino tinto + botana ligera',
+    calories: 480,
+    protein: 8,
+    carbs: 42,
+    fats: 14,
+    sodiumLevel: 'moderado',
+    clinicalTip: 'Intercala 1 vaso grande de agua mineral entre cada bebida para mantener la tasa de oxidación hepática y evitar deshidratación.',
+  },
+];
+
 export default function NutritionPage() {
   const { currentUser, nutritionPlan, substituteMealFood } = useAppState();
 
   const isFree = currentUser.subscriptionTier === 'free' && currentUser.role === 'client';
   const [activeDay, setActiveDay] = useState(1);
+  const [showCheatMealCompensator, setShowCheatMealCompensator] = useState(false);
+  const [selectedSocialMealId, setSelectedSocialMealId] = useState<string>('tacos-asada-pastor');
   const [selectedFoodForSub, setSelectedFoodForSub] = useState<{
     mealId: string;
     food: MealFoodReference;
@@ -103,20 +186,132 @@ export default function NutritionPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            if (isFree) {
-              window.location.href = '/precios';
-            } else {
-              handleOpenShoppingList();
-            }
-          }}
-          className="inline-flex items-center space-x-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30 hover:scale-[1.02] transition-transform"
-        >
-          {isFree ? <Lock className="w-4 h-4 text-amber-300" /> : <ShoppingCart className="w-4 h-4" />}
-          <span>{isFree ? 'Lista de Compras (Plan Pro)' : 'Generar Lista de Compras Semanal'}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowCheatMealCompensator(!showCheatMealCompensator)}
+            className="inline-flex items-center space-x-2 px-5 py-3.5 rounded-xl bg-motive-surfaceLight border border-amber-500/40 text-amber-300 hover:text-white hover:border-amber-400 text-xs font-bold uppercase tracking-wider transition-all shadow-lg"
+          >
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Compensador de Comida Libre / Eventos</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isFree) {
+                window.location.href = '/precios';
+              } else {
+                handleOpenShoppingList();
+              }
+            }}
+            className="inline-flex items-center space-x-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-motive-red to-motive-redDark text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-motive-red/30 hover:scale-[1.02] transition-transform"
+          >
+            {isFree ? <Lock className="w-4 h-4 text-amber-300" /> : <ShoppingCart className="w-4 h-4" />}
+            <span>{isFree ? 'Lista de Compras (Plan Pro)' : 'Generar Lista de Compras Semanal'}</span>
+          </button>
+        </div>
       </div>
+
+      {/* COMPENSADOR INTELIGENTE DE COMIDAS LIBRES Y RESTAURANTES (CHEAT MEAL) */}
+      {showCheatMealCompensator && (() => {
+        const dailyTarget = nutritionPlan?.methodology.calorieTarget || 2200;
+        const dailyProtTarget = nutritionPlan?.methodology.macroTargetGrams.protein || 160;
+        const chosenSocial = SOCIAL_MEALS_CATALOG.find((m) => m.id === selectedSocialMealId) || SOCIAL_MEALS_CATALOG[0];
+        const remainingKcal = Math.max(600, dailyTarget - chosenSocial.calories);
+        const remainingProt = Math.max(40, dailyProtTarget - chosenSocial.protein);
+
+        return (
+          <div className="bg-gradient-to-r from-motive-surface via-motive-surfaceLight to-motive-surface border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-start justify-between gap-4 border-b border-motive-surfaceBorder pb-4">
+              <div className="space-y-1">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 inline-flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Algoritmo de Flexibilidad Metabólica & Vida Social</span>
+                </span>
+                <h3 className="text-xl sm:text-2xl font-display font-black text-white uppercase mt-1">
+                  Compensador Inteligente de Comidas Libres (Cero Culpa)
+                </h3>
+                <p className="text-xs text-zinc-300 max-w-2xl leading-relaxed">
+                  ¿Tienes una cena, tacos, pizza o reunión hoy? Selecciona lo que vas a comer y el sistema reajustará el resto de tu día para que <strong>no salgas de tus calorías semanales ni pierdas tu progreso</strong>.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCheatMealCompensator(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Selector de Platillos Sociales */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {SOCIAL_MEALS_CATALOG.map((item) => {
+                const isSelected = item.id === selectedSocialMealId;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedSocialMealId(item.id)}
+                    className={`text-left p-4 rounded-2xl border transition-all ${
+                      isSelected
+                        ? 'bg-amber-500/15 border-amber-400 shadow-lg shadow-amber-500/10'
+                        : 'bg-motive-surface border-motive-surfaceBorder hover:border-zinc-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-display font-bold text-white uppercase">{item.name}</span>
+                      <span className="text-xs font-black text-amber-400">{item.calories} kcal</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 mt-1 line-clamp-2">{item.portionDesc}</p>
+                    <div className="flex items-center space-x-3 text-[10px] font-bold text-zinc-300 mt-2 pt-2 border-t border-motive-surfaceBorder/60">
+                      <span className="text-motive-redBright">{item.protein}g Prot</span>
+                      <span className="text-cyan-400">{item.carbs}g Carbos</span>
+                      <span className="text-amber-300">{item.fats}g Grasas</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Resultado del Cálculo de Compensación */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
+              <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-4 space-y-2">
+                <span className="text-[10px] font-bold uppercase text-zinc-400 block">Balance Matemático de Hoy</span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Tu Meta Diaria:</span>
+                    <strong className="text-white">{dailyTarget} kcal ({dailyProtTarget}g P)</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Evento ({chosenSocial.name}):</span>
+                    <strong className="text-amber-400">-{chosenSocial.calories} kcal ({chosenSocial.protein}g P)</strong>
+                  </div>
+                  <div className="flex justify-between pt-1.5 border-t border-motive-surfaceBorder">
+                    <span className="text-emerald-400 font-bold">Presupuesto Restante Hoy:</span>
+                    <strong className="text-emerald-400 text-sm font-black">{remainingKcal} kcal ({remainingProt}g P)</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2 bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-4 space-y-2.5 text-xs">
+                <span className="text-[10px] font-bold uppercase text-amber-400 block">
+                  Protocolo Exacto de Compensación para Hoy (Sin Rebote):
+                </span>
+                <ul className="space-y-1.5 text-zinc-300 leading-relaxed">
+                  <li>
+                    • <strong>1. Ajuste en tus otras comidas de hoy:</strong> Distribuye los <strong>{remainingKcal} kcal</strong> y <strong>{remainingProt}g de proteína</strong> restantes priorizando pechuga de pollo, claras, atún o tilapia con verduras libres, reduciendo a la mitad la porción de arroz/avena y aguacate en la comida previa.
+                  </li>
+                  <li>
+                    • <strong>2. Tip Clínico del Platillo:</strong> {chosenSocial.clinicalTip}
+                  </li>
+                  <li>
+                    • <strong>3. Control de Sodio ({chosenSocial.sodiumLevel.toUpperCase()}):</strong> Toma <strong>+750 ml de agua extra</strong> hoy. Si mañana pesas 0.5 kg más, es agua temporal por el sodio del restaurante (se elimina en 24-48h), jamás grasa real.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Garantía Fisiológica & Desglose Matemático */}
       <PhysiologicalGuaranteeCard />

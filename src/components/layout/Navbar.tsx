@@ -21,7 +21,9 @@ import {
   LogOut,
   Sparkles,
   ShieldCheck,
-  Lock
+  Lock,
+  Smartphone,
+  Download
 } from 'lucide-react';
 
 export function Navbar() {
@@ -29,6 +31,30 @@ export function Navbar() {
   const { currentUser, setCurrentUserRole, setSubscriptionTier, safetyTriage, hasCompletedAssessment } = useAppState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [pwaModalOpen, setPwaModalOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+      setPwaModalOpen(false);
+    } else {
+      setPwaModalOpen(true);
+    }
+  };
 
   const handleSignOut = async () => {
     if (isSupabaseConfigured && supabase) {
@@ -212,6 +238,14 @@ export function Navbar() {
 
             {/* Enlaces de Autenticación Siempre Visibles */}
             <div className="flex items-center gap-1.5 pl-1.5 border-l border-motive-surfaceBorder/80 flex-shrink-0">
+              <button
+                onClick={handleInstallPwa}
+                className="p-1.5 rounded-lg text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors flex items-center space-x-1 flex-shrink-0"
+                title="Instalar App Móvil / Escritorio (PWA)"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden 2xl:inline text-[10px] font-bold uppercase">App</span>
+              </button>
               <Link
                 href="/login"
                 className="px-2.5 py-1.5 rounded-lg text-[11px] xl:text-xs font-bold text-zinc-200 hover:text-white bg-motive-surface hover:bg-motive-surfaceLight border border-motive-surfaceBorder transition-colors whitespace-nowrap"
@@ -282,6 +316,17 @@ export function Navbar() {
             </Link>
           </div>
 
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              handleInstallPwa();
+            }}
+            className="w-full py-2.5 px-3 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center space-x-2"
+          >
+            <Smartphone className="w-4 h-4 text-emerald-400" />
+            <span>Instalar App en mi Celular (PWA)</span>
+          </button>
+
           <div className="space-y-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
@@ -333,6 +378,56 @@ export function Navbar() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Instalación PWA (iPhone / Android / Desktop) */}
+      {pwaModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-motive-surface border border-motive-surfaceBorder rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-motive-surfaceBorder pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">App Nativa Web (PWA)</span>
+                  <h3 className="text-base font-display font-black text-white uppercase">Instalar MOTIVE LAB</h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setPwaModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Instala <strong>MOTIVE LAB</strong> en la pantalla de inicio de tu celular para abrir tu rutina en el gimnasio y tu dieta en la cocina a pantalla completa, sin barras de navegador.
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder space-y-1">
+                <strong className="text-white block">📱 En iPhone / iPad (Safari):</strong>
+                <p className="text-zinc-400">1. Toca el botón <strong>Compartir</strong> (ícono de flecha hacia arriba en la barra inferior).</p>
+                <p className="text-zinc-400">2. Selecciona <strong>&ldquo;Agregar a pantalla de inicio&rdquo;</strong> y confirma.</p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder space-y-1">
+                <strong className="text-white block">🤖 En Android (Chrome) / PC:</strong>
+                <p className="text-zinc-400">1. Toca el menú de 3 puntos <strong>(⋮)</strong> arriba a la derecha en tu navegador.</p>
+                <p className="text-zinc-400">2. Toca <strong>&ldquo;Instalar aplicación&rdquo;</strong> o <strong>&ldquo;Agregar a la pantalla principal&rdquo;</strong>.</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setPwaModalOpen(false)}
+              className="w-full py-2.5 rounded-xl bg-motive-red hover:bg-motive-redDark text-white text-xs font-bold uppercase tracking-wider transition-colors"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

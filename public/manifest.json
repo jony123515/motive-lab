@@ -1,0 +1,18 @@
+{
+  "name": "MOTIVE LAB | Fisiología, Nutrición SMAE y Fuerza",
+  "short_name": "MOTIVE LAB",
+  "description": "Plataforma clínica de prescripción deportiva, sobrecarga progresiva ACSM y nutrición mexicana SMAE.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0A0A0C",
+  "theme_color": "#DC2626",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
