@@ -471,7 +471,7 @@ export function generatePersonalizedWorkoutPlan(
         cardioPrescription: { type: 'LISS', durationMinutes: 20 },
       });
 
-      // Si seleccionó 5 días
+      // Si seleccionó 5 o 6 días
       if (normalizedDays >= 5) {
         sessions.push({
           id: 'session-fem-5d-5',
@@ -509,6 +509,49 @@ export function generatePersonalizedWorkoutPlan(
             },
           ],
           cardioPrescription: { type: 'walking', durationMinutes: 20 },
+        });
+      }
+
+      if (normalizedDays === 6) {
+        sessions.push({
+          id: 'session-fem-6d-6',
+          dayName: 'Día 6: Pierna Completa & Enfoque Isquiotibiales/Glúteo C',
+          splitType: 'lower',
+          targetMuscleGroups: ['gluteos', 'isquiosurales', 'cuadriceps'],
+          warmupRoutine: [
+            'Movilidad de cadera con banda elástica 2x15',
+            'Puentes de glúteo unipodales con peso corporal 2x12',
+          ],
+          exercises: [
+            {
+              exerciseId: 'ex-prensa-piernas-45',
+              exercise: getExercise('ex-prensa-piernas-45'),
+              order: 1,
+              sets: createSets(3, 10, 12, 2, false),
+              notes: 'Pies colocados en la parte alta para enfoque en glúteos e isquios.',
+            },
+            {
+              exerciseId: 'ex-hip-thrust-con-barra',
+              exercise: getExercise('ex-hip-thrust-con-barra'),
+              order: 2,
+              sets: createSets(4, 12, 15, 1, false),
+              notes: 'Enfoque metabólico (pump) con 2 segundos de pausa en contracción pico.',
+            },
+            {
+              exerciseId: 'ex-curl-femoral-tumbado-maquina',
+              exercise: getExercise('ex-curl-femoral-tumbado-maquina'),
+              order: 3,
+              sets: createSets(3, 12, 15, 1, false),
+            },
+            {
+              exerciseId: 'ex-sentadilla-trasera-barra',
+              exercise: getExercise('ex-sentadilla-trasera-barra'),
+              order: 4,
+              sets: createSets(3, 10, 12, 2, true),
+              notes: 'Sentadilla con postura más ancha para involucrar glúteo y aductores.',
+            },
+          ],
+          cardioPrescription: { type: 'walking', durationMinutes: 15 },
         });
       }
     }
@@ -730,8 +773,276 @@ export function generatePersonalizedWorkoutPlan(
       ],
       cardioPrescription: { type: 'walking', durationMinutes: 15 },
     });
+  } else if (normalizedDays === 6) {
+    // 6 Días Hombres: Push / Pull / Legs x 2 (Frecuencia 2x Óptima de Hipertrofia)
+    sessions.push({
+      id: 'session-male-ppl6-push1',
+      dayName: 'Día 1: Push 1 (Empuje A - Fuerza de Pecho, Hombro & Tríceps)',
+      splitType: 'upper',
+      targetMuscleGroups: ['pecho', 'hombros', 'triceps'],
+      warmupRoutine: [
+        'Dislocaciones de hombro con banda elástica 2x15',
+        'Rotadores externos de hombro en polea 2x15',
+        'Flexiones de apoyo escapular 2x10',
+      ],
+      exercises: [
+        {
+          exerciseId: 'ex-press-banca-plano-barra',
+          exercise: getExercise('ex-press-banca-plano-barra'),
+          order: 1,
+          sets: createSets(4, 6, 8, 2, true),
+          notes: 'Fuerza primaria. Series pesadas con RIR 2 y pausa de 1 seg en el esternón.',
+        },
+        {
+          exerciseId: 'ex-press-inclinado-mancuernas',
+          exercise: getExercise('ex-press-inclinado-mancuernas'),
+          order: 2,
+          sets: createSets(3, 8, 10, 2, false),
+          notes: 'Banco a 30°. Estiramiento profundo en el pecho superior.',
+        },
+        {
+          exerciseId: 'ex-press-militar-barra-de-pie',
+          exercise: getExercise('ex-press-militar-barra-de-pie'),
+          order: 3,
+          sets: createSets(3, 6, 8, 2, true),
+          notes: 'Empuje vertical estricto con core y glúteos tensos.',
+        },
+        {
+          exerciseId: 'ex-elevaciones-laterales-mancuerna',
+          exercise: getExercise('ex-elevaciones-laterales-mancuerna'),
+          order: 4,
+          sets: createSets(4, 12, 15, 1, false),
+          notes: 'Codos ligeramente flexionados, subir en el plano escapular.',
+        },
+        {
+          exerciseId: 'ex-extension-triceps-polea-alta',
+          exercise: getExercise('ex-extension-triceps-polea-alta'),
+          order: 5,
+          sets: createSets(4, 10, 12, 1, false),
+          notes: 'Bloqueo controlado abajo sin mover los codos de los costados.',
+        },
+      ],
+      cardioPrescription: { type: 'walking', durationMinutes: 15 },
+    });
+
+    sessions.push({
+      id: 'session-male-ppl6-pull1',
+      dayName: 'Día 2: Pull 1 (Tracción A - Espalda Amplitud, Densidad & Bíceps)',
+      splitType: 'upper',
+      targetMuscleGroups: ['espalda', 'biceps'],
+      warmupRoutine: [
+        'Cat-cow dinámico y movilidad torácica 2x10',
+        'Dominadas escapulares en suspensión 2x8',
+      ],
+      exercises: [
+        {
+          exerciseId: 'ex-peso-muerto-convencional',
+          exercise: getExercise('ex-peso-muerto-convencional'),
+          order: 1,
+          sets: createSets(3, 5, 6, 2, true),
+          notes: 'Fuerza neuromuscular global. Mantén la columna lumbar neutra y barra pegada a tibias.',
+        },
+        {
+          exerciseId: 'ex-remo-con-barra-pronado',
+          exercise: getExercise('ex-remo-con-barra-pronado'),
+          order: 2,
+          sets: createSets(4, 6, 8, 2, true),
+          notes: 'Tira con los codos hacia la cadera apretando dorsales.',
+        },
+        {
+          exerciseId: 'ex-dominadas-o-jalon-pecho',
+          exercise: getExercise('ex-dominadas-o-jalon-pecho'),
+          order: 3,
+          sets: createSets(3, 8, 10, 2, false),
+          notes: 'Deprime escápulas antes del tirón. Rango completo de movimiento.',
+        },
+        {
+          exerciseId: 'ex-curl-biceps-barra-recta',
+          exercise: getExercise('ex-curl-biceps-barra-recta'),
+          order: 4,
+          sets: createSets(4, 8, 10, 1, false),
+          notes: 'Sin balanceo del torso. 2 segundos de fase excéntrica.',
+        },
+      ],
+      cardioPrescription: { type: 'walking', durationMinutes: 15 },
+    });
+
+    sessions.push({
+      id: 'session-male-ppl6-legs1',
+      dayName: 'Día 3: Legs 1 (Pierna A - Enfoque Cuádriceps & Sentadilla Pesada)',
+      splitType: 'lower',
+      targetMuscleGroups: ['cuadriceps', 'gluteos', 'isquiosurales'],
+      warmupRoutine: [
+        '5 min caminata en cinta con pendiente o bicicleta',
+        'Sentadillas libres profundas y movilidad de tobillo 2x12',
+      ],
+      exercises: [
+        {
+          exerciseId: 'ex-sentadilla-trasera-barra',
+          exercise: getExercise('ex-sentadilla-trasera-barra'),
+          order: 1,
+          sets: createSets(4, 6, 8, 2, true),
+          notes: 'Fuerza primaria de tren inferior. Control excéntrico de 2 segundos.',
+        },
+        {
+          exerciseId: 'ex-prensa-piernas-45',
+          exercise: getExercise('ex-prensa-piernas-45'),
+          order: 2,
+          sets: createSets(3, 8, 10, 2, false),
+          notes: 'Pies a anchura media para máximo reclutamiento de cuádriceps.',
+        },
+        {
+          exerciseId: 'ex-hip-thrust-con-barra',
+          exercise: getExercise('ex-hip-thrust-con-barra'),
+          order: 3,
+          sets: createSets(3, 8, 10, 1, true),
+          notes: 'Retroversión pélvica arriba con 1 seg de contracción isométrica.',
+        },
+        {
+          exerciseId: 'ex-curl-femoral-tumbado-maquina',
+          exercise: getExercise('ex-curl-femoral-tumbado-maquina'),
+          order: 4,
+          sets: createSets(3, 10, 12, 1, false),
+          notes: 'Aislamiento de isquiosurales sin compensación lumbar.',
+        },
+      ],
+      cardioPrescription: { type: 'walking', durationMinutes: 15 },
+    });
+
+    sessions.push({
+      id: 'session-male-ppl6-push2',
+      dayName: 'Día 4: Push 2 (Empuje B - Hipertrofia Pecho Inclinado, Hombro 3D & Tríceps)',
+      splitType: 'upper',
+      targetMuscleGroups: ['pecho', 'hombros', 'triceps'],
+      warmupRoutine: [
+        'Rotadores externos con banda 2x15',
+        'Flexiones dinámicas en banco 2x10',
+      ],
+      exercises: [
+        {
+          exerciseId: 'ex-press-inclinado-mancuernas',
+          exercise: getExercise('ex-press-inclinado-mancuernas'),
+          order: 1,
+          sets: createSets(4, 8, 10, 2, true),
+          notes: 'Prioridad en haz clavicular superior. Máximo rango de estiramiento.',
+        },
+        {
+          exerciseId: 'ex-press-banca-plano-barra',
+          exercise: getExercise('ex-press-banca-plano-barra'),
+          order: 2,
+          sets: createSets(3, 8, 10, 2, false),
+          notes: 'Enfoque en tensión mecánica y congestión pectoral.',
+        },
+        {
+          exerciseId: 'ex-press-militar-barra-de-pie',
+          exercise: getExercise('ex-press-militar-barra-de-pie'),
+          order: 3,
+          sets: createSets(3, 10, 12, 2, false),
+          notes: 'Rango controlado sin arquear la zona lumbar.',
+        },
+        {
+          exerciseId: 'ex-elevaciones-laterales-mancuerna',
+          exercise: getExercise('ex-elevaciones-laterales-mancuerna'),
+          order: 4,
+          sets: createSets(4, 12, 15, 1, false),
+          notes: 'Enfoque en bombeo de deltoides lateral.',
+        },
+        {
+          exerciseId: 'ex-extension-triceps-polea-alta',
+          exercise: getExercise('ex-extension-triceps-polea-alta'),
+          order: 5,
+          sets: createSets(4, 12, 15, 1, false),
+          notes: 'Pausa de 1 segundo en máxima extensión.',
+        },
+      ],
+      cardioPrescription: { type: 'walking', durationMinutes: 15 },
+    });
+
+    sessions.push({
+      id: 'session-male-ppl6-pull2',
+      dayName: 'Día 5: Pull 2 (Tracción B - Hipertrofia Espalda Densidad & Bíceps)',
+      splitType: 'upper',
+      targetMuscleGroups: ['espalda', 'biceps', 'hombros'],
+      warmupRoutine: [
+        'Dislocaciones con pica o banda 2x15',
+        'Rotaciones de escápula en suspensión 2x10',
+      ],
+      exercises: [
+        {
+          exerciseId: 'ex-remo-con-barra-pronado',
+          exercise: getExercise('ex-remo-con-barra-pronado'),
+          order: 1,
+          sets: createSets(4, 8, 10, 2, true),
+          notes: 'Densidad en romboides y trapecio medio. Torso inclinado a 45°.',
+        },
+        {
+          exerciseId: 'ex-dominadas-o-jalon-pecho',
+          exercise: getExercise('ex-dominadas-o-jalon-pecho'),
+          order: 2,
+          sets: createSets(4, 8, 10, 2, false),
+          notes: 'Énfasis en amplitud dorsal jalando hacia la clavícula.',
+        },
+        {
+          exerciseId: 'ex-peso-muerto-convencional',
+          exercise: getExercise('ex-peso-muerto-convencional'),
+          order: 3,
+          sets: createSets(3, 8, 10, 2, false),
+          notes: 'Variante bisagra moderada para cadena posterior y erectores espinales.',
+        },
+        {
+          exerciseId: 'ex-curl-biceps-barra-recta',
+          exercise: getExercise('ex-curl-biceps-barra-recta'),
+          order: 4,
+          sets: createSets(4, 10, 12, 1, false),
+          notes: 'Contracción pico en la parte alta.',
+        },
+      ],
+      cardioPrescription: { type: 'walking', durationMinutes: 15 },
+    });
+
+    sessions.push({
+      id: 'session-male-ppl6-legs2',
+      dayName: 'Día 6: Legs 2 (Pierna B - Cadena Posterior, Isquios & Glúteos)',
+      splitType: 'lower',
+      targetMuscleGroups: ['gluteos', 'isquiosurales', 'cuadriceps'],
+      warmupRoutine: [
+        '5 min bicicleta estática',
+        'Puentes de glúteo de activación 2x15',
+      ],
+      exercises: [
+        {
+          exerciseId: 'ex-hip-thrust-con-barra',
+          exercise: getExercise('ex-hip-thrust-con-barra'),
+          order: 1,
+          sets: createSets(4, 8, 10, 1, true),
+          notes: 'Prioridad de cadena posterior y glúteo. Mantén 1 seg arriba.',
+        },
+        {
+          exerciseId: 'ex-prensa-piernas-45',
+          exercise: getExercise('ex-prensa-piernas-45'),
+          order: 2,
+          sets: createSets(3, 10, 12, 2, false),
+          notes: 'Pies colocados altos en la plataforma para enfatizar glúteo e isquios.',
+        },
+        {
+          exerciseId: 'ex-sentadilla-trasera-barra',
+          exercise: getExercise('ex-sentadilla-trasera-barra'),
+          order: 3,
+          sets: createSets(3, 8, 10, 2, true),
+          notes: 'Sentadilla técnica enfocada en hipertrofia y control de recorrido.',
+        },
+        {
+          exerciseId: 'ex-curl-femoral-tumbado-maquina',
+          exercise: getExercise('ex-curl-femoral-tumbado-maquina'),
+          order: 4,
+          sets: createSets(4, 12, 15, 1, false),
+          notes: 'Máxima tensión en la porción distal de los isquiosurales.',
+        },
+      ],
+      cardioPrescription: { type: 'walking', durationMinutes: 15 },
+    });
   } else {
-    // 4, 5 o 6 Días Hombres: Torso / Pierna Estándar de Oro
+    // 4 o 5 Días Hombres: Torso / Pierna Estándar de Oro
     sessions.push({
       id: 'session-male-torso-1',
       dayName: 'Día 1: Torso Pesado (Empuje & Tracción Primaria)',
@@ -950,10 +1261,17 @@ export function generatePersonalizedWorkoutPlan(
     }
   }
 
+  const planTitle =
+    normalizedDays === 6
+      ? 'Mesociclo Push / Pull / Legs x 2 (6 Días de Hipertrofia & Rendimiento)'
+      : normalizedDays === 3
+      ? 'Mesociclo Push / Pull / Legs (3 Días de Hipertrofia & Fuerza)'
+      : `Mesociclo de Hipertrofia & Fuerza Fisiológica (${normalizedDays} Días)`;
+
   return {
     id: `plan-train-${Date.now()}`,
     userId,
-    title: `Mesociclo de Hipertrofia & Fuerza Fisiológica (${normalizedDays} Días)`,
+    title: planTitle,
     mesocycleWeeks: 6,
     currentWeek: 1,
     deloadWeek: 6,

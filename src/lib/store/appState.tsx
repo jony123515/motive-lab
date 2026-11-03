@@ -299,7 +299,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           const nutrPlan = generate7DayNutritionPlan(
             assessment.userId,
             metabolic,
-            assessment.diet?.preferredMealsPerDay || 4
+            assessment.diet?.preferredMealsPerDay || 4,
+            assessment.diet,
+            assessment.clinical,
+            assessment.goal.primary
           );
 
           const expLevel = 

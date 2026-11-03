@@ -1,4 +1,4 @@
-import { DailyMenu, Meal, MealFoodReference, NutritionPlan } from '@/types';
+import { DailyMenu, Meal, MealFoodReference, NutritionPlan, DietaryHabitsData, ClinicalScreeningData, PrimaryGoal } from '@/types';
 import { SMAE_DATABASE } from '@/lib/data/smaeFoods';
 import { MetabolicCalculationResult } from './metabolicEngine';
 
@@ -26,7 +26,10 @@ interface MealSpec {
 export function generate7DayNutritionPlan(
   userId: string,
   metabolic: MetabolicCalculationResult,
-  mealsPerDay: number = 4
+  mealsPerDay: number = 4,
+  dietaryHabits?: DietaryHabitsData,
+  clinical?: ClinicalScreeningData,
+  goal: PrimaryGoal = 'hypertrophy'
 ): NutritionPlan {
   const daysOfWeek = [
     { dayNumber: 1, name: 'Lunes' },
@@ -39,7 +42,14 @@ export function generate7DayNutritionPlan(
   ];
 
   const weeklyDays: DailyMenu[] = daysOfWeek.map((day) => {
-    const meals = buildDayMeals(day.dayNumber, metabolic, mealsPerDay);
+    const meals = buildDayMeals(
+      day.dayNumber,
+      metabolic,
+      mealsPerDay,
+      dietaryHabits,
+      clinical,
+      goal
+    );
 
     const dailyTotals = meals.reduce(
       (acc, m) => ({
@@ -229,15 +239,70 @@ function buildMealFromSpec(
   };
 }
 
+function applyClinicalAndPreferenceFilters(
+  spec: MealSpec,
+  avoidsFish: boolean,
+  avoidsEggs: boolean,
+  avoidsDairy: boolean,
+  hasDiabetes: boolean
+): MealSpec {
+  const newSpec: MealSpec = {
+    prot: spec.prot ? spec.prot.map((p) => ({ ...p })) : [],
+    carb: spec.carb ? spec.carb.map((c) => ({ ...c })) : [],
+    fat: spec.fat ? spec.fat.map((f) => ({ ...f })) : [],
+    veg: spec.veg ? { ...spec.veg } : undefined,
+  };
+
+  // Filtrado de fuentes de proteína
+  if (newSpec.prot) {
+    newSpec.prot = newSpec.prot.map((p) => {
+      if (avoidsFish && (p.id === 'aoa-tilapia-filete-cocido' || p.id === 'aoa-atun-agua')) {
+        return { id: 'aoa-pollo-pechuga-cocida', share: p.share, notes: 'Pechuga a la plancha (adaptado sin pescado)' };
+      }
+      if (avoidsEggs && (p.id === 'aoa-huevo-entero' || p.id === 'aoa-clara-huevo' || p.id === 'rec-hot-cakes-proteicos')) {
+        return { id: 'aoa-queso-panela', share: p.share, notes: 'Queso panela fresco (adaptado sin huevo)' };
+      }
+      if (avoidsDairy && (p.id === 'lac-yogur-griego-sin-azucar' || p.id === 'aoa-queso-panela')) {
+        return { id: 'sup-whey-isolate', share: p.share, notes: 'Proteína aislada Whey Isolate (libre de lactosa)' };
+      }
+      return p;
+    });
+  }
+
+  // Filtrado de carbohidratos en caso de resistencia a la insulina / diabetes
+  if (hasDiabetes && newSpec.carb) {
+    newSpec.carb = newSpec.carb.map((c) => {
+      if (c.id === 'fru-platano-tabasco') {
+        return { id: 'fru-manzana-roja', share: c.share, notes: 'Manzana roja con piel (bajo índice glucémico)' };
+      }
+      return c;
+    });
+  }
+
+  return newSpec;
+}
+
 function buildDayMeals(
   dayIndex: number,
   metabolic: MetabolicCalculationResult,
-  mealsCount: number
+  mealsCount: number,
+  dietaryHabits?: DietaryHabitsData,
+  clinical?: ClinicalScreeningData,
+  goal: PrimaryGoal = 'hypertrophy'
 ): Meal[] {
   const targetKcal = metabolic.calorieTarget;
   const targetProt = metabolic.macros.proteinGrams;
   const targetCarbs = metabolic.macros.carbsGrams;
   const targetFats = metabolic.macros.fatsGrams;
+
+  // Criterio Clínico y Preferencias Dietéticas
+  const dislikes = (dietaryHabits?.dislikedFoods || []).map((f) => f.toLowerCase().trim());
+  const avoidsFish = dislikes.some((d) => d.includes('pescado') || d.includes('atun') || d.includes('atún') || d.includes('tilapia') || d.includes('marisco'));
+  const avoidsEggs = dislikes.some((d) => d.includes('huevo') || d.includes('clara'));
+  const avoidsDairy = dislikes.some((d) => d.includes('lacteo') || d.includes('lácteo') || d.includes('leche') || d.includes('queso') || d.includes('panela') || d.includes('yogur')) ||
+    (dietaryHabits?.dietaryRestrictions || []).some((r) => r.toLowerCase().includes('lactosa') || r.toLowerCase().includes('lactose') || r.toLowerCase().includes('sin_lacteos')) ||
+    (clinical?.digestiveIssues || []).some((i) => i.toLowerCase().includes('lactosa') || i.toLowerCase().includes('lactose'));
+  const hasDiabetes = (clinical?.diagnosedDiseases || []).some((d) => d.toLowerCase().includes('diabet') || d.toLowerCase().includes('glucosa') || d.toLowerCase().includes('insulina'));
 
   // Distribución de tiempos y porcentajes según número de comidas
   let configs: { type: Meal['type']; share: number; time: string }[] = [];
@@ -256,7 +321,6 @@ function buildDayMeals(
       { type: 'dinner', share: 0.20, time: '20:30' },
     ];
   } else if (mealsCount === 5) {
-    // 3 comidas principales + 2 colaciones/snacks (solicitado específicamente)
     configs = [
       { type: 'breakfast', share: 0.25, time: '07:30' },
       { type: 'morning_snack', share: 0.15, time: '10:30' },
@@ -265,7 +329,6 @@ function buildDayMeals(
       { type: 'dinner', share: 0.15, time: '20:30' },
     ];
   } else {
-    // 6 tiempos de comida
     configs = [
       { type: 'breakfast', share: 0.22, time: '07:00' },
       { type: 'morning_snack', share: 0.12, time: '10:00' },
@@ -290,27 +353,35 @@ function buildDayMeals(
 
     let template: { name: string; prepSteps: string[]; spec: MealSpec };
 
+    // =========================================================================
+    // CATÁLOGO VARIADO Y CREATIVO DE RECETAS FIT POR DÍA DE LA SEMANA
+    // =========================================================================
+
     if (cfg.type === 'breakfast') {
       if (dayIndex === 6 || dayIndex === 7) {
+        // Fin de semana: Hot cakes fit proteicos de avena, plátano y canela
         template = {
-          name: '🥞 Desayuno Fit: Hot Cakes Proteicos de Avena & Plátano',
+          name: dayIndex === 6
+            ? '🥞 Desayuno Fit: Hot Cakes Proteicos de Avena & Plátano con Canela'
+            : '🥞 Hot Cakes Fit Dorados con Topping de Manzana, Canela y Proteína Shake',
           prepSteps: [
             'Licuar la avena molida con claras de huevo, proteína whey y canela al gusto.',
             'Cocinar a fuego bajo en sartén antiadherente con tapa 2-3 min hasta burbujear; voltear 1 min.',
-            'Servir calientes con plátano en rodajas y crema de cacahuate natural untada.',
+            'Servir calientes con fruta en rodajas y crema de cacahuate 100% natural untada.',
           ],
           spec: {
             prot: [
               { id: 'rec-hot-cakes-proteicos', share: 0.6, notes: 'Hot cakes fit de avena y claras' },
               { id: 'aoa-clara-huevo', share: 0.4, notes: 'Claras líquidas para batir y esponjar' },
             ],
-            carb: [{ id: 'fru-platano-tabasco', share: 1.0, notes: 'Plátano fresco en rodajas' }],
+            carb: [{ id: dayIndex === 6 ? 'fru-platano-tabasco' : 'fru-manzana-roja', share: 1.0, notes: 'Fruta fresca en rodajas' }],
             fat: [{ id: 'gra-crema-cacahuate', share: 1.0, notes: 'Crema de cacahuate 100% natural' }],
           },
         };
-      } else if (dayIndex % 2 === 1) {
+      } else if (dayIndex === 1 || dayIndex === 4) {
+        // Lunes y Jueves: Huevos revueltos a la mexicana con nopales y tortillas
         template = {
-          name: '🍳 Huevos Revueltos a la Mexicana con Nopales y Tortillas',
+          name: '🍳 Huevos Revueltos a la Mexicana con Nopales Asados, Frijoles & Tortillas',
           prepSteps: [
             'Saltear nopales tiernos con jitomate y cebolla en sartén antiadherente.',
             'Batir los huevos enteros con las claras y verter a fuego medio hasta cuajar.',
@@ -326,13 +397,33 @@ function buildDayMeals(
             veg: { id: 'ver-nopal-cocido', grams: 110, notes: 'Nopales salteados' },
           },
         };
-      } else {
+      } else if (dayIndex === 3) {
+        // Miércoles: Omelette de claras con queso panela, espinacas y tostadas
         template = {
-          name: '🥣 Bowl Energético: Avena con Canela, Manzana & Claras',
+          name: '🧀 Omelette Atlante de Claras con Queso Panela Asado, Espinacas & Tostadas',
+          prepSteps: [
+            'Batir las claras de huevo con una pizca de orégano y sal marina.',
+            'Verter en sartén caliente con espinacas picadas y doblar en forma de omelette.',
+            'Asar cubos de queso panela al comal y servir con tortillas de maíz y aguacate.',
+          ],
+          spec: {
+            prot: [
+              { id: 'aoa-clara-huevo', share: 0.65, notes: 'Claras batidas esponjosas' },
+              { id: 'aoa-queso-panela', share: 0.35, notes: 'Queso panela artesanal asado' },
+            ],
+            carb: [{ id: 'cer-tortilla-maiz', share: 1.0, notes: 'Tortillas de maíz al comal' }],
+            fat: [{ id: 'gra-aguacate-hass', share: 1.0, notes: 'Aguacate Hass' }],
+            veg: { id: 'ver-espinaca-cruda', grams: 90, notes: 'Espinacas tiernas integradas' },
+          },
+        };
+      } else {
+        // Martes y Viernes: Bowl de avena cremosa con manzana y claras al sartén
+        template = {
+          name: '🥣 Bowl Anabólico: Avena Caliente con Canela, Manzana Roja & Claras al Sartén',
           prepSteps: [
             'Hervir la avena en agua con canela hasta textura cremosa.',
             'Revolver las claras de huevo con queso panela en sartén antiadherente.',
-            'Servir la avena con la manzana fresca picada y la crema de cacahuate.',
+            'Servir la avena con la manzana fresca picada y la crema de cacahuate natural.',
           ],
           spec: {
             prot: [
@@ -348,9 +439,9 @@ function buildDayMeals(
         };
       }
     } else if (cfg.type === 'morning_snack') {
-      if (dayIndex % 2 === 1) {
+      if (dayIndex === 1 || dayIndex === 4) {
         template = {
-          name: '🍘 Colación Fit: Rice Cakes con Crema de Cacahuate & Whey',
+          name: '🍘 Colación Fit: Crujientes Rice Cakes con Crema de Cacahuate & Shake de Whey',
           prepSteps: [
             'Untar la crema de cacahuate 100% natural sobre las tortitas de arroz inflado (rice cakes).',
             'Disolver la proteína de suero aislada en agua helada. Snack crujiente de alta saciedad.',
@@ -361,9 +452,22 @@ function buildDayMeals(
             fat: [{ id: 'gra-crema-cacahuate', share: 1.0, notes: 'Untada sobre los rice cakes' }],
           },
         };
+      } else if (dayIndex === 3) {
+        template = {
+          name: '🍎 Manzana Roja en Láminas con Crema de Cacahuate & Whey Protein Shake',
+          prepSteps: [
+            'Cortar la manzana en láminas finas y untar con la porción pesada de crema de cacahuate.',
+            'Acompañar con un batido frío de proteína de suero aislada en 300 ml de agua.',
+          ],
+          spec: {
+            prot: [{ id: 'sup-whey-isolate', share: 1.0, notes: 'Whey isolate disuelto en agua fría' }],
+            carb: [{ id: 'fru-manzana-roja', share: 1.0, notes: 'Manzana fresca con piel' }],
+            fat: [{ id: 'gra-crema-cacahuate', share: 1.0, notes: 'Crema de cacahuate 100% natural' }],
+          },
+        };
       } else {
         template = {
-          name: '🍓 Yogur Griego Proteico con Fruta & Crema de Cacahuate',
+          name: '🍓 Parfait Proteico de Yogur Griego sin Azúcar con Fruta Fresca & Crema de Cacahuate',
           prepSteps: [
             'Servir el yogur griego natural sin azúcar en un tazón.',
             'Añadir la proteína whey e integrar suavemente con la fruta fresca y crema de cacahuate.',
@@ -379,16 +483,19 @@ function buildDayMeals(
         };
       }
     } else if (cfg.type === 'lunch') {
-      if (dayIndex === 3 || dayIndex === 7) {
+      if ((dayIndex === 3 || dayIndex === 7) && !avoidsFish) {
+        // Miércoles y Domingo: Tilapia fresca al limón
         template = {
-          name: '🐟 Comida Fit: Filete de Tilapia al Limón con Arroz y Espinacas',
+          name: dayIndex === 3
+            ? '🐟 Comida Fit: Filete de Tilapia al Mojo de Limón y Ajo con Arroz al Vapor y Espinacas'
+            : '🐟 Filete de Tilapia Sellada con Especias Mediterráneas, Arroz al Vapor y Ensalada Verde',
           prepSteps: [
-            'Marinar la tilapia fresca con jugo de limón, sal marina y finas hierbas.',
+            'Marinar la tilapia fresca con jugo de limón fresco, sal marina, ajo molido y finas hierbas.',
             'Asar en sartén a fuego medio por 3 minutos por lado para conservar jugosidad.',
-            'Servir con arroz al vapor, espinacas tiernas y aguacate fresco.',
+            'Servir con arroz al vapor, espinacas tiernas aliñadas con aceite de oliva extra virgen y aguacate.',
           ],
           spec: {
-            prot: [{ id: 'aoa-tilapia-filete-cocido', share: 1.0, notes: 'Filete de tilapia asada con limón' }],
+            prot: [{ id: 'aoa-tilapia-filete-cocido', share: 1.0, notes: 'Filete de tilapia fresca asada' }],
             carb: [{ id: 'cer-arroz-blanco-cocido', share: 1.0, notes: 'Arroz blanco cocido al vapor' }],
             fat: [
               { id: 'gra-aguacate-hass', share: 0.6, notes: 'Aguacate Hass en rebanadas' },
@@ -397,31 +504,16 @@ function buildDayMeals(
             veg: { id: 'ver-espinaca-cruda', grams: 90, notes: 'Espinacas frescas aliñadas' },
           },
         };
-      } else if (dayIndex === 1 || dayIndex === 4) {
-        template = {
-          name: '🍗 Pechuga a la Plancha con Arroz, Frijoles de la Olla y Aguacate',
-          prepSteps: [
-            'Sazonar la pechuga de pollo magra con ajo, paprika y sal.',
-            'Asar a la plancha a temperatura media hasta obtener sellado dorado.',
-            'Acompañar con arroz al vapor, frijoles enteros y calabacitas tiernas.',
-          ],
-          spec: {
-            prot: [{ id: 'aoa-pollo-pechuga-cocida', share: 1.0, notes: 'Pechuga magra a la plancha' }],
-            carb: [
-              { id: 'cer-arroz-blanco-cocido', share: 0.65, notes: 'Arroz blanco al vapor' },
-              { id: 'leg-frijol-negro-cocido', share: 0.35, notes: 'Frijoles negros de la olla enteros' },
-            ],
-            fat: [{ id: 'gra-aguacate-hass', share: 1.0, notes: 'Aguacate Hass fresco' }],
-            veg: { id: 'ver-calabacita-cocida', grams: 100, notes: 'Calabacitas al vapor' },
-          },
-        };
       } else if (dayIndex === 2 || dayIndex === 6) {
+        // Martes y Sábado: Fajitas de res magra al comal
         template = {
-          name: '🥩 Fajitas de Res Magra al Comal con Tortillas y Frijoles',
+          name: dayIndex === 2
+            ? '🥩 Fajitas de Res Magra Salteadas al Comal con Nopales Tiernos, Frijoles & Tortillas'
+            : '🥩 Tacos al Comal de Bistec Magro con Pico de Gallo, Nopales Asados y Guacamole',
           prepSteps: [
-            'Cortar el bistec magro en tiras y saltear con nopales en sartén caliente.',
+            'Cortar el bistec magro en tiras y saltear con nopales en sartén caliente sin aceite añadido.',
             'Calentar las tortillas de maíz nixtamalizadas al comal.',
-            'Servir con frijoles enteros y guacamole con limón.',
+            'Servir con frijoles negros enteros de la olla y guacamole fresco con limón.',
           ],
           spec: {
             prot: [{ id: 'aoa-res-magra-cruda', share: 1.0, notes: 'Bistec de res magro a la plancha' }],
@@ -433,13 +525,14 @@ function buildDayMeals(
             veg: { id: 'ver-nopal-cocido', grams: 110, notes: 'Nopales salteados al comal' },
           },
         };
-      } else {
+      } else if (dayIndex === 4) {
+        // Jueves: Pollo con papas al vapor al romero
         template = {
-          name: '🥔 Pollo Dorado con Papas al Horno y Ensalada Verde',
+          name: '🥔 Pechuga Dorada a las Finas Hierbas con Papas al Vapor al Romero & Lentejas de la Olla',
           prepSteps: [
-            'Hervir papas con piel y dorar ligeramente en sartén.',
-            'Asar pechuga a la plancha a temperatura media.',
-            'Servir con lentejas de la olla y ensalada de espinacas aliñada.',
+            'Cocer papas con piel en cubos y dorar ligeramente en sartén con una pizca de romero y sal.',
+            'Asar pechuga a la plancha a temperatura media hasta sellado jugoso.',
+            'Servir con lentejas cocidas de la olla y ensalada de espinacas tiernas aliñada con aceite de oliva.',
           ],
           spec: {
             prot: [{ id: 'aoa-pollo-pechuga-cocida', share: 1.0, notes: 'Pechuga de pollo a la plancha' }],
@@ -451,11 +544,32 @@ function buildDayMeals(
             veg: { id: 'ver-espinaca-cruda', grams: 80, notes: 'Espinacas frescas' },
           },
         };
+      } else {
+        // Lunes y Viernes: Pechuga a la plancha con arroz blanco y frijoles negros
+        template = {
+          name: dayIndex === 1
+            ? '🍗 Pechuga a la Plancha con Arroz Blanco al Vapor, Frijoles Negros de la Olla & Aguacate'
+            : '🥗 Bowl Mexicano: Pechuga Deshebrada, Arroz al Vapor, Frijoles Negros & Aguacate Hass',
+          prepSteps: [
+            'Sazonar la pechuga de pollo magra con ajo, paprika y sal marina.',
+            'Asar a la plancha a temperatura media hasta obtener sellado dorado.',
+            'Acompañar con arroz al vapor, frijoles enteros de la olla, calabacitas y rebanadas de aguacate.',
+          ],
+          spec: {
+            prot: [{ id: 'aoa-pollo-pechuga-cocida', share: 1.0, notes: 'Pechuga magra a la plancha' }],
+            carb: [
+              { id: 'cer-arroz-blanco-cocido', share: 0.65, notes: 'Arroz blanco al vapor' },
+              { id: 'leg-frijol-negro-cocido', share: 0.35, notes: 'Frijoles negros de la olla enteros' },
+            ],
+            fat: [{ id: 'gra-aguacate-hass', share: 1.0, notes: 'Aguacate Hass fresco' }],
+            veg: { id: 'ver-calabacita-cocida', grams: 100, notes: 'Calabacitas al vapor' },
+          },
+        };
       }
     } else if (cfg.type === 'afternoon_snack') {
-      if (dayIndex % 2 === 1) {
+      if (dayIndex === 1 || dayIndex === 4) {
         template = {
-          name: '🧀 Colación Tarde: Queso Panela Asado con Tostadas & Aguacate',
+          name: '🧀 Colación Tarde: Queso Panela Asado con Tostadas de Maíz & Aguacate Fresco',
           prepSteps: [
             'Asar el queso panela en sartén antiadherente hasta dorar los bordes.',
             'Servir sobre tostadas horneadas o tortillas con jitomate fresco y aguacate.',
@@ -467,9 +581,25 @@ function buildDayMeals(
             veg: { id: 'ver-jitomate-bola', grams: 80, notes: 'Jitomate en rodajas' },
           },
         };
+      } else if (dayIndex === 3) {
+        template = {
+          name: '🍓 Yogur Griego Natural Alto en Proteína con Papaya Fresca & Crema de Cacahuate',
+          prepSteps: [
+            'Servir el yogur griego frío en un tazón.',
+            'Mezclar con scoop de Whey Isolate, cubos de papaya y crema de cacahuate natural.',
+          ],
+          spec: {
+            prot: [
+              { id: 'lac-yogur-griego-sin-azucar', share: 0.65, notes: 'Yogur griego bajo en grasa' },
+              { id: 'sup-whey-isolate', share: 0.35, notes: 'Whey Isolate en polvo' },
+            ],
+            carb: [{ id: 'fru-papaya-maradol', share: 1.0, notes: 'Papaya fresca en cubos' }],
+            fat: [{ id: 'gra-crema-cacahuate', share: 1.0, notes: 'Crema de cacahuate natural' }],
+          },
+        };
       } else {
         template = {
-          name: '🍘 Rice Cakes con Crema de Cacahuate & Manzana Fresca',
+          name: '🍘 Rice Cakes con Crema de Cacahuate Natural, Láminas de Manzana & Shake de Whey',
           prepSteps: [
             'Untar crema de cacahuate natural sobre las tortitas de arroz inflado.',
             'Colocar láminas de manzana encima y acompañar con batido de proteína en agua.',
@@ -485,9 +615,10 @@ function buildDayMeals(
         };
       }
     } else if (cfg.type === 'dinner') {
-      if (dayIndex % 2 === 1) {
+      if ((dayIndex === 1 || dayIndex === 6) && !avoidsFish) {
+        // Lunes y Sábado: Tacos de atún a la mexicana
         template = {
-          name: '🌮 Tacos Ligeros de Atún a la Mexicana con Aguacate',
+          name: '🌮 Tacos Ligeros de Atún a la Mexicana con Pico de Gallo & Aguacate Hass',
           prepSteps: [
             'Drenar el atún en agua y mezclar con pico de gallo (jitomate, cebolla, cilantro y limón).',
             'Calentar las tortillas de maíz nixtamalizadas en el comal.',
@@ -503,9 +634,45 @@ function buildDayMeals(
             veg: { id: 'ver-jitomate-bola', grams: 90, notes: 'Jitomate picado con cilantro y limón' },
           },
         };
-      } else {
+      } else if (dayIndex === 3) {
+        // Miércoles: Revuelto ligero de claras con calabacitas y queso panela
         template = {
-          name: '🥗 Ensalada Proteica de Pollo con Panela, Calabacitas y Tortilla',
+          name: '🍳 Revuelto Ligero de Claras con Calabacitas Salteadas, Queso Panela & Tostadas',
+          prepSteps: [
+            'Saltear las calabacitas en cubos pequeños en sartén antiadherente.',
+            'Verter las claras de huevo y revolver suavemente con cubos de queso panela.',
+            'Acompañar con tortillas de maíz calientes y aceite de oliva virgen extra.',
+          ],
+          spec: {
+            prot: [
+              { id: 'aoa-clara-huevo', share: 0.65, notes: 'Claras revueltas ligeras' },
+              { id: 'aoa-queso-panela', share: 0.35, notes: 'Queso panela artesanal fresco' },
+            ],
+            carb: [{ id: 'cer-tortilla-maiz', share: 1.0, notes: 'Tortillas de maíz al comal' }],
+            fat: [{ id: 'gra-aceite-oliva', share: 1.0, notes: 'Aceite de oliva extra virgen en crudo' }],
+            veg: { id: 'ver-calabacita-cocida', grams: 100, notes: 'Calabacitas salteadas' },
+          },
+        };
+      } else if (dayIndex === 5 && !avoidsFish) {
+        // Viernes: Filete de tilapia asada ligera
+        template = {
+          name: '🐟 Filete de Tilapia Asada a la Plancha con Ensalada Verde, Jitomate & Aguacate',
+          prepSteps: [
+            'Sazonar el filete de tilapia con limón y ajo.',
+            'Asar 3 minutos por lado en sartén antiadherente.',
+            'Servir con ensalada fresca de hojas verdes, jitomate, aguacate y tortillas de maíz.',
+          ],
+          spec: {
+            prot: [{ id: 'aoa-tilapia-filete-cocido', share: 1.0, notes: 'Tilapia asada a la plancha' }],
+            carb: [{ id: 'cer-tortilla-maiz', share: 1.0, notes: 'Tortillas de maíz al comal' }],
+            fat: [{ id: 'gra-aguacate-hass', share: 1.0, notes: 'Aguacate Hass fresco' }],
+            veg: { id: 'ver-espinaca-cruda', grams: 80, notes: 'Espinacas tiernas con limón' },
+          },
+        };
+      } else {
+        // Martes, Jueves, Domingo: Ensalada proteica de pollo con panela y calabacitas
+        template = {
+          name: '🥗 Ensalada Proteica de Pollo con Cubos de Panela Asado, Calabacitas & Tortilla',
           prepSteps: [
             'Saltear las calabacitas en cubos y mezclar con pechuga deshebrada y queso panela.',
             'Aderezar con aceite de oliva extra virgen y sal marina.',
@@ -523,12 +690,12 @@ function buildDayMeals(
         };
       }
     } else {
-      // 6ª comida / snack nocturno
+      // 6ª comida / snack nocturno (digestión lenta para síntesis proteica nocturna)
       template = {
-        name: '🌙 Snack Nocturno: Yogur Griego con Crema de Cacahuate & Papaya',
+        name: '🌙 Snack Nocturno: Yogur Griego con Crema de Cacahuate & Canela',
         prepSteps: [
           'Servir yogur griego frío en un tazón.',
-          'Añadir crema de cacahuate natural y fruta fresca. Proteína de lenta digestión para síntesis nocturna.',
+          'Añadir crema de cacahuate natural, canela y fruta fresca. Proteína de lenta digestión para síntesis nocturna.',
         ],
         spec: {
           prot: [{ id: 'lac-yogur-griego-sin-azucar', share: 1.0, notes: 'Yogur natural estilo griego' }],
@@ -538,12 +705,21 @@ function buildDayMeals(
       };
     }
 
+    // Aplicar filtros clínicos y de preferencias personales sobre los alimentos de la receta
+    const filteredSpec = applyClinicalAndPreferenceFilters(
+      template.spec,
+      avoidsFish,
+      avoidsEggs,
+      avoidsDairy,
+      hasDiabetes
+    );
+
     const meal = buildMealFromSpec(
       template.name,
       cfg.type,
       cfg.time,
       template.prepSteps,
-      template.spec,
+      filteredSpec,
       mKcal,
       mProt,
       mCarbs,
