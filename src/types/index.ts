@@ -5,6 +5,19 @@
 
 export type UserRole = 'client' | 'coach' | 'nutritionist' | 'admin';
 
+export interface UserProfile {
+  id: string;
+  name?: string;
+  fullName?: string;
+  email: string;
+  role: UserRole;
+  birthDate?: string;
+  avatarUrl?: string;
+  subscriptionTier?: 'free' | 'pro' | 'coach';
+  subscriptionStatus?: string;
+  stripeCustomerId?: string;
+}
+
 export type Gender = 'male' | 'female';
 
 export type ActivityLevel = 

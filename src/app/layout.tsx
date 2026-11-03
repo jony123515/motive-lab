@@ -3,6 +3,7 @@ import './globals.css';
 import { AppStateProvider } from '@/lib/store/appState';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { FloatingCoachBot } from '@/components/chat/FloatingCoachBot';
 
 export const metadata: Metadata = {
   title: 'MOTIVE LAB | Ecosistema de Fisiología, Nutrición SMAE y Fuerza',
@@ -23,6 +24,7 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <FloatingCoachBot />
         </AppStateProvider>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   UserRole,
+  UserProfile,
   UserAssessment,
   NutritionPlan,
   WorkoutPlan,
@@ -15,18 +16,6 @@ import { generatePersonalizedWorkoutPlan } from '@/lib/engines/trainingEngine';
 import { calculateHydrationPlan } from '@/lib/engines/hydrationEngine';
 import { evaluateClinicalSafety, SafetyTriageResult } from '@/lib/engines/safetyTriageEngine';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  birthDate: string;
-  avatarUrl?: string;
-  subscriptionTier?: 'free' | 'pro' | 'coach';
-  subscriptionStatus?: string;
-  stripeCustomerId?: string;
-}
 
 interface AppContextType {
   currentUser: UserProfile;

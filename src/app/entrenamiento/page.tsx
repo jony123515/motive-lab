@@ -27,14 +27,25 @@ import {
   Info,
   Upload,
   Trash2,
-  Film
+  Film,
+  Heart,
+  Activity,
+  Layers,
+  ShieldCheck,
+  Zap,
+  Target
 } from 'lucide-react';
 import { AssessmentGate } from '@/components/auth/AssessmentGate';
+import { ABDOMINAL_ROUTINES } from '@/lib/data/abdominalRoutines';
+import { CARDIO_PROTOCOLS, calculateHeartRateZones } from '@/lib/data/cardioProtocols';
 
 export default function TrainingPage() {
   const { currentUser, workoutPlan, saveLoggedWorkout } = useAppState();
 
   const [activeSessionIndex, setActiveSessionIndex] = useState(0);
+  const [trainingSection, setTrainingSection] = useState<'sessions' | 'abs' | 'cardio'>('sessions');
+  const [activeAbsRoutineId, setActiveAbsRoutineId] = useState<string>('ab-hypertrophy-3d');
+  const [cardioAge, setCardioAge] = useState<number>(26);
   const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<ExerciseDefinition | null>(null);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<string>('todos');
@@ -169,223 +180,533 @@ export default function TrainingPage() {
         </button>
       </div>
 
-      {/* Selector de Sesiones del Mesociclo */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-        {workoutPlan?.sessions.map((session, sIdx) => (
-          <button
-            key={session.id}
-            onClick={() => setActiveSessionIndex(sIdx)}
-            className={`flex-shrink-0 px-5 py-3 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-all border ${
-              activeSessionIndex === sIdx
-                ? 'bg-motive-red border-motive-redBright text-white shadow-lg shadow-motive-red/30'
-                : 'bg-motive-surface border-motive-surfaceBorder text-zinc-400 hover:text-white hover:border-zinc-700'
-            }`}
-          >
-            <span>{session.dayName}</span>
-            <span className="block text-[10px] font-normal opacity-80 mt-0.5">{session.exercises.length} Ejercicios</span>
-          </button>
-        ))}
+      {/* Selector de Sección de Entrenamiento: Pesas / Abdomen / Cardio */}
+      <div className="flex items-center space-x-2 bg-motive-surface border border-motive-surfaceBorder p-1.5 rounded-2xl w-full max-w-2xl overflow-x-auto shadow-lg">
+        <button
+          onClick={() => setTrainingSection('sessions')}
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-2 whitespace-nowrap ${
+            trainingSection === 'sessions'
+              ? 'bg-gradient-to-r from-motive-red to-motive-redDark text-white shadow-md shadow-motive-red/30'
+              : 'text-zinc-400 hover:text-white hover:bg-motive-surfaceLight'
+          }`}
+        >
+          <Dumbbell className="w-3.5 h-3.5" />
+          <span>Rutina de Pesas ({workoutPlan?.sessions.length || 6} Días)</span>
+        </button>
+
+        <button
+          onClick={() => setTrainingSection('abs')}
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-2 whitespace-nowrap ${
+            trainingSection === 'abs'
+              ? 'bg-gradient-to-r from-motive-red to-motive-redDark text-white shadow-md shadow-motive-red/30'
+              : 'text-zinc-400 hover:text-white hover:bg-motive-surfaceLight'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span>Rutinas de Abdomen</span>
+        </button>
+
+        <button
+          onClick={() => setTrainingSection('cardio')}
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-2 whitespace-nowrap ${
+            trainingSection === 'cardio'
+              ? 'bg-gradient-to-r from-motive-red to-motive-redDark text-white shadow-md shadow-motive-red/30'
+              : 'text-zinc-400 hover:text-white hover:bg-motive-surfaceLight'
+          }`}
+        >
+          <Flame className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Cardio Quema Grasa</span>
+        </button>
       </div>
 
-      {/* Sesión Activa con Calentamiento y Ejercicios */}
-      <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 sm:p-8 space-y-6">
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-motive-surfaceBorder/60 pb-5">
-          <div>
-            <span className="text-xs font-bold text-motive-redBright uppercase tracking-wider block">Sesión en Curso</span>
-            <h3 className="text-2xl font-display font-black text-white uppercase">{activeSession?.dayName}</h3>
-          </div>
-          <div className="flex items-center space-x-2 text-xs text-zinc-400">
-            <span className="px-3 py-1 rounded-lg bg-motive-surfaceLight border border-motive-surfaceBorder font-semibold">
-              Split: {activeSession?.splitType.toUpperCase()}
-            </span>
-            <span className="px-3 py-1 rounded-lg bg-motive-surfaceLight border border-motive-surfaceBorder font-semibold">
-              RIR Sugerido: 1 a 2
-            </span>
-          </div>
-        </div>
-
-        {/* Protocolo de Calentamiento Específico */}
-        <div className="bg-motive-surfaceLight/70 border border-motive-surfaceBorder rounded-xl p-4 space-y-2">
-          <p className="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-2">
-            <Flame className="w-4 h-4 text-amber-400" />
-            <span>Protocolo de Calentamiento Dinámico & Activación</span>
-          </p>
-          <ul className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-zinc-300">
-            {activeSession?.warmupRoutine.map((w, idx) => (
-              <li key={idx} className="flex items-start space-x-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
-                <span>{w}</span>
-              </li>
+      {/* 1. SECCIÓN DE PESAS / SESIONES DEL MESOCICLO */}
+      {trainingSection === 'sessions' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Selector de Sesiones del Mesociclo */}
+          <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+            {workoutPlan?.sessions.map((session, sIdx) => (
+              <button
+                key={session.id}
+                onClick={() => setActiveSessionIndex(sIdx)}
+                className={`flex-shrink-0 px-5 py-3 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-all border ${
+                  activeSessionIndex === sIdx
+                    ? 'bg-motive-red border-motive-redBright text-white shadow-lg shadow-motive-red/30'
+                    : 'bg-motive-surface border-motive-surfaceBorder text-zinc-400 hover:text-white hover:border-zinc-700'
+                }`}
+              >
+                <span>{session.dayName}</span>
+                <span className="block text-[10px] font-normal opacity-80 mt-0.5">{session.exercises.length} Ejercicios</span>
+              </button>
             ))}
-          </ul>
-        </div>
-
-        {/* Sugerencia de Sobrecarga Progresiva */}
-        {progressionAlert && (
-          <div className="p-4 rounded-xl bg-motive-red/10 border border-motive-red/30 flex items-start space-x-3 text-xs">
-            <Sparkles className="w-5 h-5 text-motive-redBright flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-white uppercase">Evaluación del Algoritmo de Doble Progresión</p>
-              <p className="text-zinc-300 leading-relaxed">{progressionAlert}</p>
-            </div>
           </div>
-        )}
 
-        {/* Lista de Ejercicios de la Sesión */}
-        <div className="space-y-6">
-          {activeSession?.exercises.map((item, exIdx) => (
-            <div
-              key={item.exerciseId}
-              className="bg-motive-surfaceLight border border-motive-surfaceBorder rounded-2xl p-5 space-y-4 hover:border-zinc-700 transition-all"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-motive-surface border border-motive-surfaceBorder text-zinc-400">
-                      Ejercicio #{exIdx + 1}
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-motive-red/10 text-motive-redBright border border-motive-red/30">
-                      {item.exercise.tier.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-display font-bold text-white">{item.exercise.nameSpanish}</h4>
-                  <p className="text-xs text-zinc-400">
-                    Músculo principal: <strong className="text-zinc-200 capitalize">{item.exercise.primaryMuscle}</strong> • Patrón: {item.exercise.movementPattern.replace('_', ' ')}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setSelectedExerciseForModal(item.exercise)}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-motive-surface border border-motive-surfaceBorder text-xs font-bold text-zinc-300 hover:text-white hover:border-motive-red transition-colors self-start sm:self-auto"
-                >
-                  <Info className="w-3.5 h-3.5 text-motive-redBright" />
-                  <span>Ver Ficha Técnica & Errores</span>
-                </button>
+          {/* Sesión Activa con Calentamiento y Ejercicios */}
+          <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 sm:p-8 space-y-6">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-motive-surfaceBorder/60 pb-5">
+              <div>
+                <span className="text-xs font-bold text-motive-redBright uppercase tracking-wider block">Sesión en Curso</span>
+                <h3 className="text-2xl font-display font-black text-white uppercase">{activeSession?.dayName}</h3>
               </div>
-
-              {/* Pauta de Series de Aproximación */}
-              <div className="text-[11px] bg-amber-500/10 border border-amber-500/20 text-amber-300 p-2.5 rounded-xl flex items-start space-x-2">
-                <Flame className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
-                <div>
-                  <strong className="block text-white">Series de Aproximación Obligatorias:</strong>
-                  {item.exercise.warmupProtocol}
-                </div>
+              <div className="flex items-center space-x-2 text-xs text-zinc-400">
+                <span className="px-3 py-1 rounded-lg bg-motive-surfaceLight border border-motive-surfaceBorder font-semibold">
+                  Split: {activeSession?.splitType.toUpperCase()}
+                </span>
+                <span className="px-3 py-1 rounded-lg bg-motive-surfaceLight border border-motive-surfaceBorder font-semibold">
+                  RIR Sugerido: 1 a 2
+                </span>
               </div>
-
-              {/* Tabla Interactiva de Series */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-motive-surfaceBorder text-zinc-500 text-[10px] uppercase">
-                      <th className="py-2.5">Serie</th>
-                      <th className="py-2.5">Tipo</th>
-                      <th className="py-2.5">Objetivo</th>
-                      <th className="py-2.5">RIR Meta</th>
-                      <th className="py-2.5">Descanso</th>
-                      <th className="py-2.5">Carga (kg)</th>
-                      <th className="py-2.5">Reps Logradas</th>
-                      <th className="py-2.5">RIR Real</th>
-                      <th className="py-2.5">Dolor</th>
-                      <th className="py-2.5 text-right">Confirmar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-motive-surfaceBorder/40">
-                    {item.sets.map((set, sIdx) => {
-                      const setId = `ex-${exIdx}-set-${sIdx}`;
-                      const isDone = loggedSets[setId]?.done;
-                      const isWarmup = set.setType === 'warmup_approximation';
-
-                      return (
-                        <tr key={sIdx} className="hover:bg-motive-surface/50">
-                          <td className="py-2.5 font-bold text-white">#{set.setNumber}</td>
-                          <td className="py-2.5">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              isWarmup
-                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                : 'bg-motive-red/10 text-motive-redBright border border-motive-red/20'
-                            }`}>
-                              {isWarmup ? 'Aprox' : 'Efectiva'}
-                            </span>
-                          </td>
-                          <td className="py-2.5 text-zinc-300">{set.targetRepsMin}-{set.targetRepsMax} reps</td>
-                          <td className="py-2.5 text-zinc-400">RIR {set.targetRIR}</td>
-                          <td className="py-2.5 text-zinc-400">{set.restSeconds}s</td>
-                          
-                          {/* Inputs de registro */}
-                          <td className="py-2.5">
-                            <input
-                              type="number"
-                              defaultValue={isWarmup ? 40 : 80}
-                              className="w-16 bg-motive-surface border border-motive-surfaceBorder rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-motive-red"
-                              id={`${setId}-kg`}
-                            />
-                          </td>
-                          <td className="py-2.5">
-                            <input
-                              type="number"
-                              defaultValue={set.targetRepsMax}
-                              className="w-14 bg-motive-surface border border-motive-surfaceBorder rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-motive-red"
-                              id={`${setId}-reps`}
-                            />
-                          </td>
-                          <td className="py-2.5">
-                            <select
-                              defaultValue={set.targetRIR}
-                              className="bg-motive-surface border border-motive-surfaceBorder rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-motive-red"
-                              id={`${setId}-rir`}
-                            >
-                              <option value="0">0 (Fallo muscular)</option>
-                              <option value="1">1 RIR</option>
-                              <option value="2">2 RIR</option>
-                              <option value="3">3 RIR</option>
-                            </select>
-                          </td>
-                          <td className="py-2.5">
-                            <input
-                              type="checkbox"
-                              className="rounded border-motive-surfaceBorder text-motive-red focus:ring-0"
-                              id={`${setId}-pain`}
-                              title="Marca sólo si sentiste dolor articular"
-                            />
-                          </td>
-                          <td className="py-2.5 text-right">
-                            <button
-                              onClick={() => {
-                                const kgEl = document.getElementById(`${setId}-kg`) as HTMLInputElement;
-                                const repsEl = document.getElementById(`${setId}-reps`) as HTMLInputElement;
-                                const rirEl = document.getElementById(`${setId}-rir`) as HTMLSelectElement;
-                                const painEl = document.getElementById(`${setId}-pain`) as HTMLInputElement;
-
-                                handleSetUpdate(
-                                  setId,
-                                  Number(repsEl?.value || 8),
-                                  Number(kgEl?.value || 80),
-                                  Number(rirEl?.value || 2),
-                                  painEl?.checked || false
-                                );
-                              }}
-                              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                                isDone
-                                  ? 'bg-motive-emerald text-black shadow-lg shadow-motive-emerald/20'
-                                  : 'bg-motive-surface border border-motive-surfaceBorder text-zinc-300 hover:border-zinc-500'
-                              }`}
-                            >
-                              {isDone ? '✓ Registrado' : 'Registrar'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
             </div>
-          ))}
-        </div>
 
-      </div>
+            {/* Protocolo de Calentamiento Específico */}
+            <div className="bg-motive-surfaceLight/70 border border-motive-surfaceBorder rounded-xl p-4 space-y-2">
+              <p className="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-2">
+                <Flame className="w-4 h-4 text-amber-400" />
+                <span>Protocolo de Calentamiento Dinámico & Activación</span>
+              </p>
+              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-zinc-300">
+                {activeSession?.warmupRoutine.map((w, idx) => (
+                  <li key={idx} className="flex items-start space-x-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                    <span>{w}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Sugerencia de Sobrecarga Progresiva */}
+            {progressionAlert && (
+              <div className="p-4 rounded-xl bg-motive-red/10 border border-motive-red/30 flex items-start space-x-3 text-xs">
+                <Sparkles className="w-5 h-5 text-motive-redBright flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-white uppercase">Evaluación del Algoritmo de Doble Progresión</p>
+                  <p className="text-zinc-300 leading-relaxed">{progressionAlert}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de Ejercicios de la Sesión */}
+            <div className="space-y-6">
+              {activeSession?.exercises.map((item, exIdx) => (
+                <div
+                  key={item.exerciseId}
+                  className="bg-motive-surfaceLight border border-motive-surfaceBorder rounded-2xl p-5 space-y-4 hover:border-zinc-700 transition-all"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3">
+                      <span className="w-8 h-8 rounded-xl bg-motive-surface border border-motive-surfaceBorder flex items-center justify-center text-xs font-display font-bold text-zinc-300">
+                        #{exIdx + 1}
+                      </span>
+                      <div>
+                        <h4 className="text-base font-display font-bold text-white flex items-center space-x-2">
+                          <span>{item.exercise?.nameSpanish || item.exerciseId}</span>
+                          <button
+                            onClick={() => setSelectedExerciseForModal(item.exercise)}
+                            className="p-1 hover:text-motive-redBright text-zinc-500 transition-colors"
+                            title="Ver especificación biomecánica"
+                          >
+                            <Info className="w-4 h-4" />
+                          </button>
+                        </h4>
+                        <span className="text-xs text-zinc-400 capitalize">
+                          {item.exercise?.primaryMuscle} • {item.exercise?.movementPattern.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 text-xs text-zinc-400">
+                      <span className="px-2.5 py-1 rounded-lg bg-motive-surface border border-motive-surfaceBorder">
+                        {item.sets.length} Series Prescritas
+                      </span>
+                    </div>
+                  </div>
+
+                  {item.notes && (
+                    <div className="p-3 rounded-xl bg-motive-surface/60 border border-motive-surfaceBorder/60 text-xs text-zinc-300 flex items-start space-x-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span>{item.notes}</span>
+                    </div>
+                  )}
+
+                  {/* Tabla Interactiva de Series */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left text-zinc-300">
+                      <thead className="text-[11px] uppercase tracking-wider text-zinc-400 border-b border-motive-surfaceBorder">
+                        <tr>
+                          <th className="py-2">Serie</th>
+                          <th className="py-2">Tipo</th>
+                          <th className="py-2">Rango Objetivo</th>
+                          <th className="py-2">Carga (kg)</th>
+                          <th className="py-2">Reps</th>
+                          <th className="py-2">RIR</th>
+                          <th className="py-2 text-center">Dolor</th>
+                          <th className="py-2 text-right">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-motive-surfaceBorder/40">
+                        {item.sets.map((set, sIdx) => {
+                          const setId = `ex-${exIdx}-set-${sIdx}`;
+                          const log = loggedSets[setId];
+                          const isDone = log?.done;
+
+                          return (
+                            <tr key={sIdx} className={isDone ? 'bg-emerald-500/5' : ''}>
+                              <td className="py-2.5 font-bold text-white">{set.setNumber}</td>
+                              <td className="py-2.5">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  set.setType === 'warmup_approximation'
+                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    : 'bg-motive-red/10 text-motive-redBright border border-motive-red/20'
+                                }`}>
+                                  {set.setType === 'warmup_approximation' ? 'Aproximación' : 'Efectiva'}
+                                </span>
+                              </td>
+                              <td className="py-2.5">{set.targetRepsMin} - {set.targetRepsMax} reps</td>
+                              <td className="py-2.5">
+                                <input
+                                  type="number"
+                                  id={`${setId}-kg`}
+                                  defaultValue={log?.weight || 60}
+                                  className="w-16 bg-motive-surface border border-motive-surfaceBorder rounded-lg px-2 py-1 text-white text-xs"
+                                />
+                              </td>
+                              <td className="py-2.5">
+                                <input
+                                  type="number"
+                                  id={`${setId}-reps`}
+                                  defaultValue={log?.reps || set.targetRepsMin}
+                                  className="w-14 bg-motive-surface border border-motive-surfaceBorder rounded-lg px-2 py-1 text-white text-xs"
+                                />
+                              </td>
+                              <td className="py-2.5">
+                                <select
+                                  id={`${setId}-rir`}
+                                  defaultValue={log?.rir ?? set.targetRIR}
+                                  className="bg-motive-surface border border-motive-surfaceBorder rounded-lg px-2 py-1 text-white text-xs"
+                                >
+                                  <option value={0}>0 (Fallo)</option>
+                                  <option value={1}>1</option>
+                                  <option value={2}>2</option>
+                                  <option value={3}>3</option>
+                                </select>
+                              </td>
+                              <td className="py-2.5 text-center">
+                                <input
+                                  type="checkbox"
+                                  id={`${setId}-pain`}
+                                  defaultChecked={log?.pain || false}
+                                  className="rounded border-motive-surfaceBorder text-motive-red focus:ring-0"
+                                />
+                              </td>
+                              <td className="py-2.5 text-right">
+                                <button
+                                  onClick={() => {
+                                    const kgEl = document.getElementById(`${setId}-kg`) as HTMLInputElement;
+                                    const repsEl = document.getElementById(`${setId}-reps`) as HTMLInputElement;
+                                    const rirEl = document.getElementById(`${setId}-rir`) as HTMLSelectElement;
+                                    const painEl = document.getElementById(`${setId}-pain`) as HTMLInputElement;
+
+                                    handleSetUpdate(
+                                      setId,
+                                      Number(repsEl?.value || 8),
+                                      Number(kgEl?.value || 80),
+                                      Number(rirEl?.value || 2),
+                                      painEl?.checked || false
+                                    );
+                                  }}
+                                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                                    isDone
+                                      ? 'bg-motive-emerald text-black shadow-lg shadow-motive-emerald/20'
+                                      : 'bg-motive-surface border border-motive-surfaceBorder text-zinc-300 hover:border-zinc-500'
+                                  }`}
+                                >
+                                  {isDone ? '✓ Registrado' : 'Registrar'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 2. SECCIÓN DE RUTINAS DE ABDOMEN & CORE */}
+      {trainingSection === 'abs' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          
+          {/* Header de Abdomen */}
+          <div className="bg-gradient-to-r from-motive-surface via-motive-surfaceLight to-motive-surface border-2 border-amber-500/30 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 inline-flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Especialización Biomecánica de Core & Six-Pack</span>
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-display font-black text-white uppercase tracking-tight">
+                  Rutinas de Abdomen Basadas en Evidencia
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed">
+                  El abdomen es un músculo esquelético que se hipertrofia con <strong>sobrecarga mecánica progresiva y tensión isométrica</strong>, no con 500 repeticiones sin peso.
+                </p>
+              </div>
+
+              {/* Selector de Rutinas de Abdomen */}
+              <div className="flex flex-wrap sm:flex-nowrap gap-2">
+                {ABDOMINAL_ROUTINES.map((routine) => (
+                  <button
+                    key={routine.id}
+                    onClick={() => setActiveAbsRoutineId(routine.id)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-all border ${
+                      activeAbsRoutineId === routine.id
+                        ? 'bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/30'
+                        : 'bg-motive-surface border-motive-surfaceBorder text-zinc-300 hover:text-white hover:border-zinc-600'
+                    }`}
+                  >
+                    {routine.title.split(' ')[0]} {routine.title.split(' ')[1]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rutina Activa Detalle */}
+            {(() => {
+              const activeRoutine = ABDOMINAL_ROUTINES.find((r) => r.id === activeAbsRoutineId) || ABDOMINAL_ROUTINES[0];
+              return (
+                <div className="space-y-6 pt-4 border-t border-motive-surfaceBorder/60">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3.5 rounded-xl bg-motive-surface border border-motive-surfaceBorder">
+                      <span className="text-[10px] font-semibold text-zinc-400 block uppercase">Frecuencia Recomendada</span>
+                      <strong className="text-white font-bold">{activeRoutine.frequencyWeekly}</strong>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-motive-surface border border-motive-surfaceBorder">
+                      <span className="text-[10px] font-semibold text-zinc-400 block uppercase">Momento Óptimo</span>
+                      <strong className="text-amber-400 font-bold">{activeRoutine.bestTiming}</strong>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-motive-surface border border-motive-surfaceBorder">
+                      <span className="text-[10px] font-semibold text-zinc-400 block uppercase">Nivel de Exigencia</span>
+                      <strong className="text-white font-bold capitalize">{activeRoutine.difficulty}</strong>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-zinc-200 space-y-1">
+                    <span className="font-bold text-amber-300 block uppercase text-[11px]">Fundamento Fisiológico:</span>
+                    <p className="leading-relaxed">{activeRoutine.scientificRationale}</p>
+                  </div>
+
+                  {/* Ejercicios de la Rutina de Abdomen */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-display font-black text-white uppercase tracking-wider">
+                      Ejercicios del Protocolo ({activeRoutine.exercises.length} Ejercicios de Precisión)
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {activeRoutine.exercises.map((ex, exI) => (
+                        <div
+                          key={exI}
+                          className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-5 space-y-3 flex flex-col justify-between hover:border-amber-500/40 transition-all"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                {ex.targetAreaName}
+                              </span>
+                              <span className="text-xs font-bold text-zinc-400">#{exI + 1}</span>
+                            </div>
+
+                            <h5 className="font-display font-bold text-white text-base leading-snug">
+                              {ex.name}
+                            </h5>
+
+                            <div className="p-2.5 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder flex items-center justify-between text-xs">
+                              <span className="text-zinc-400 font-medium">Series & Reps:</span>
+                              <strong className="text-white font-bold">{ex.sets} series x {ex.reps}</strong>
+                            </div>
+
+                            {/* Puntos Clave Biomecánicos */}
+                            <div className="space-y-1 pt-1">
+                              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Cómo Ejecutarlo:</span>
+                              <ul className="space-y-1 text-[11px] text-zinc-300">
+                                {ex.biomechanicalCues.slice(0, 2).map((cue, cI) => (
+                                  <li key={cI} className="flex items-start space-x-1.5">
+                                    <span className="w-1 h-1 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                                    <span>{cue}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+
+                          {/* Error Común a Evitar */}
+                          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300">
+                            <strong>⚠️ Evitar:</strong> {ex.mistakesToAvoid[0]}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+          </div>
+
+        </div>
+      )}
+
+      {/* 3. SECCIÓN DE CARDIO PARA PÉRDIDA DE GRASA */}
+      {trainingSection === 'cardio' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          
+          {/* Header & Protocolo Estrella: LISS Inclinado */}
+          <div className="bg-gradient-to-r from-motive-surface via-motive-surfaceLight to-motive-surface border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="space-y-2">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 inline-flex items-center space-x-1.5">
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Fisiología de la Oxidación Lipídica (Zona FatMax)</span>
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-display font-black text-white uppercase tracking-tight">
+                  El Cardio Más Eficaz para Perder Grasa Pura
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed">
+                  Comprobado por la ciencia deportiva: la <strong>Caminata en Cinta Inclinada en Zona 2 (LISS Inclinado)</strong> quema grasa visceral y subcutánea sin degradar la masa muscular ni perjudicar tus levantamientos pesados.
+                </p>
+              </div>
+
+              {/* Calculadora Interactiva de FCM y Zona 2 */}
+              <div className="p-4 rounded-2xl bg-motive-surface border border-motive-surfaceBorder space-y-2.5 min-w-[260px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white uppercase flex items-center space-x-1.5">
+                    <Heart className="w-3.5 h-3.5 text-motive-redBright animate-pulse" />
+                    <span>Tu Zona 2 Personal</span>
+                  </span>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-[10px] text-zinc-400">Edad:</span>
+                    <input
+                      type="number"
+                      min={15}
+                      max={85}
+                      value={cardioAge}
+                      onChange={(e) => setCardioAge(Number(e.target.value))}
+                      className="w-12 bg-motive-surfaceLight border border-motive-surfaceBorder rounded px-1.5 py-0.5 text-xs text-white text-center font-bold"
+                    />
+                  </div>
+                </div>
+
+                {(() => {
+                  const zones = calculateHeartRateZones(cardioAge);
+                  return (
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-baseline justify-between border-b border-motive-surfaceBorder/60 pb-1">
+                        <span className="text-zinc-400 text-[11px]">FCM Teórica:</span>
+                        <strong className="text-white">{zones.maxHR} bpm</strong>
+                      </div>
+                      <div className="flex items-baseline justify-between pt-1">
+                        <span className="text-emerald-400 font-bold text-[11px]">Zona 2 FatMax (60-70%):</span>
+                        <strong className="text-emerald-400 text-sm font-black">{zones.zone2.min} - {zones.zone2.max} bpm</strong>
+                      </div>
+                      <p className="text-[10px] text-zinc-400 pt-1 leading-tight">
+                        Mantén tus pulsaciones en este rango para quemar ácidos grasos puros sin fatigar el SNC.
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Los 3 Protocolos de Cardio en Tarjetas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-motive-surfaceBorder/60">
+              {CARDIO_PROTOCOLS.map((proto) => {
+                const isKing = proto.hierarchyTier === 'rey_perdida_grasa';
+                return (
+                  <div
+                    key={proto.id}
+                    className={`rounded-2xl p-5 space-y-4 flex flex-col justify-between border transition-all ${
+                      isKing
+                        ? 'bg-gradient-to-b from-emerald-500/10 via-motive-surface to-motive-surface border-emerald-500/40 shadow-xl shadow-emerald-500/10'
+                        : 'bg-motive-surface border-motive-surfaceBorder'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          isKing
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {isKing ? '🏆 Estándar de Oro' : '⚡ Acelerador'}
+                        </span>
+                        <span className="text-[11px] font-bold text-zinc-400">{proto.recommendedDuration}</span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-display font-black text-white text-base uppercase leading-snug">
+                          {proto.name}
+                        </h4>
+                        <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                          {proto.subtitle}
+                        </p>
+                      </div>
+
+                      {/* Pasos de Ejecución */}
+                      <div className="p-3 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder text-xs space-y-1.5">
+                        <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider block">Protocolo Exacto:</span>
+                        <ul className="space-y-1 text-[11px] text-zinc-300 leading-relaxed">
+                          {proto.protocolSteps.slice(0, 3).map((step, sI) => (
+                            <li key={sI} className="flex items-start space-x-1.5">
+                              <span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Impacto en Músculo */}
+                      <div className="text-[11px] text-zinc-300">
+                        <strong className="text-white block">Impacto en Masa Muscular:</strong>
+                        <p className="text-zinc-400 mt-0.5">{proto.fatLossVsMuscleMassImpact}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-motive-surfaceBorder/60 flex items-center justify-between text-xs font-semibold text-zinc-400">
+                      <span>Frecuencia:</span>
+                      <strong className="text-white">{proto.frequencyPerWeek}</strong>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Comparación Científica: Por qué NO debes correr para perder grasa */}
+            <div className="p-5 rounded-2xl bg-motive-surface border border-motive-surfaceBorder space-y-3">
+              <h4 className="text-sm font-display font-bold text-white uppercase flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>¿Por qué Caminar Inclinado supera a Correr para Perder Grasa?</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-zinc-300 leading-relaxed">
+                <div className="p-3 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder space-y-1">
+                  <strong className="text-emerald-400 block font-bold">✓ Caminata Inclinada (10-12% a 5 km/h):</strong>
+                  <p>Oxida 85% de grasa como combustible (Zona 2). Cero impacto articular. No interfiere con el crecimiento muscular (vía mTOR intacta). Mantiene la fuerza en sentadilla.</p>
+                </div>
+                <div className="p-3 rounded-xl bg-motive-surfaceLight border border-motive-surfaceBorder space-y-1">
+                  <strong className="text-rose-400 block font-bold">✗ Correr en Asfalto / Ritmo Intenso:</strong>
+                  <p>Quema principalmente glucógeno muscular y aminoácidos. Impacto articular repetitivo. Activa fuertemente AMPK bloqueando la hipertrofia. Desencadena hambre voraz por grelina.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
 
       {/* Biblioteca Completa de Ejercicios */}
       <div className="bg-motive-surface border border-motive-surfaceBorder rounded-2xl p-6 sm:p-8 space-y-6">
